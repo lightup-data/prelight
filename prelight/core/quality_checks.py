@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from prelight.core.sandbox_manager import SandboxRecord
 
 from prelight.core.clients import get_client
 
@@ -56,34 +52,6 @@ def run_custom_checks(sandbox_name: str, source_table: str, custom_checks: list[
         "sandbox_name": sandbox_name,
         "source_table": source_table,
         "checks": checks,
-        "all_passed": all_passed,
-    }
-
-
-def run_custom_checks_for_workspace(
-    workspace_name: str,
-    sandbox_records: list[SandboxRecord],
-) -> dict:
-    """Run custom quality checks for every sandbox in a workspace.
-
-    Each sandbox uses its own custom_quality_checks saved via save_quality_checks.
-    """
-    workspace_run_id = str(uuid.uuid4())
-    per_sandbox_results = []
-
-    for record in sandbox_records:
-        result = run_custom_checks(
-            record.sandbox_name,
-            record.source_table,
-            record.custom_quality_checks,
-        )
-        per_sandbox_results.append(result)
-
-    all_passed = all(r["all_passed"] for r in per_sandbox_results)
-    return {
-        "workspace_run_id": workspace_run_id,
-        "workspace_name": workspace_name,
-        "per_sandbox_results": per_sandbox_results,
         "all_passed": all_passed,
     }
 
