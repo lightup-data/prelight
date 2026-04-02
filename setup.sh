@@ -51,6 +51,7 @@ fi
 
 # ── 2. Install uv ─────────────────────────────────────────────────────────────
 if ! command -v uv &>/dev/null; then
+    info "Installing uv (Python package manager)..."
     curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1
     if [ -f "$HOME/.local/bin/env" ]; then
         # shellcheck disable=SC1091
@@ -61,23 +62,31 @@ if ! command -v uv &>/dev/null; then
         echo "Error: uv installed but not in PATH. Open a new terminal and re-run."
         exit 1
     fi
+    success "uv installed"
 fi
 
 # ── 3. Clone or update the repo ───────────────────────────────────────────────
 if [ -d "$INSTALL_DIR/.git" ]; then
+    info "Updating Prelight..."
     git -C "$INSTALL_DIR" pull --ff-only --quiet
+    success "Prelight updated"
 else
+    info "Downloading Prelight to $INSTALL_DIR..."
     git clone --quiet "$REPO_URL" "$INSTALL_DIR"
+    success "Prelight downloaded"
 fi
 
 cd "$INSTALL_DIR"
 
 # ── 4. Install Python dependencies ───────────────────────────────────────────
+info "Installing Python dependencies..."
 uv sync --quiet
+success "Dependencies ready"
 
 # ── 5. Write config.yaml (create if missing, update path if exists) ────────────
 CONFIG_PATH="$INSTALL_DIR/config.yaml"
 
+info "Writing configuration file (database path, schema, credentials)..."
 python3 - <<PYTHON 2>/dev/null
 import sys
 from pathlib import Path
@@ -118,14 +127,19 @@ quality:
   row_count_drift_pct: 5
 """)
 PYTHON
+success "Configuration file saved to $CONFIG_PATH"
 
 # ── 6. Load demo data ─────────────────────────────────────────────────────────
+info "Installing DuckDB and loading demo data at $DB_PATH..."
 PRELIGHT_CONFIG="$CONFIG_PATH" uv run python setup/duckdb/init_local.py \
     --path "$DB_PATH" \
     --schema "$SCHEMA" >/dev/null 2>&1
+success "Demo data ready (schema: $SCHEMA, tables: orders, customers)"
 
 # ── 7. Register with Claude Desktop & Claude Code ─────────────────────────────
+info "Registering the Prelight MCP server with Claude..."
 PRELIGHT_CONFIG="$CONFIG_PATH" uv run prelight install >/dev/null 2>&1
+success "MCP server registered"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
