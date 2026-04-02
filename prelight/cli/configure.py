@@ -76,14 +76,3 @@ def apply_databricks(
     return _config_path()
 
 
-def apply_github(token: str, repo: str, migrations_folder: str, base_branch: str) -> Path:
-    """Write or update the github: section."""
-    raw = _load_raw()
-    raw["github"] = {
-        "token": token,
-        "repo": repo,
-        "migrations_folder": migrations_folder,
-        "base_branch": base_branch,
-    }
-    _save_raw(raw)
-    return _config_path()

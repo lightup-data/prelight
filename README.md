@@ -33,13 +33,15 @@ Type: **List my tables**
 
 **3. Runs quality checks** — Claude checks for row count drift, numeric drift, referential integrity, and value distribution — sandbox vs production — and tells you exactly what changed.
 
-**4. Opens a PR** — When you're happy, Claude commits the migration SQL and raises a pull request. You review, you merge.
+**4. Commits to a branch** — Every change is committed to a local git branch as you go — migration SQL, quality check files, and notes. Say "raise a PR" when you're ready and Claude pushes the branch for you.
 
 ---
 
 ## Try It Right Now
 
-You've got an `orders` and `customers` table ready to go. Here's a full end-to-end flow you can run immediately:
+You've got an `orders` and `customers` table ready to go. Here's a full end-to-end flow you can run immediately.
+
+> **Note:** Prelight writes migration files directly into your git repo as you work. Make sure Claude Code is opened from inside a git-tracked directory when working with your own data.
 
 ### Explore — understand what's there before you change anything
 
@@ -75,13 +77,17 @@ Run quality checks
 
 Claude picks the right checks, runs them against sandbox vs production, and gives you a clear report.
 
-### Ship — commit the change and open a PR
+### Ship — push the branch and open a PR
+
+When quality checks pass, Claude will tell you the branch is ready. Say:
 
 ```
 Raise a PR — Add region column to orders for EMEA reporting
 ```
 
-### Go bigger — multi-table changes in one PR
+Claude pushes the branch and gives you a direct link to open the PR on GitHub.
+
+### Go bigger — multi-table changes in one branch
 
 ```
 Apply a 10% discount to orders over $500 and mark those customers as premium.
@@ -114,9 +120,9 @@ Tell Claude: `Use my DuckDB at /path/to/your/file.duckdb`
 
 Tell Claude: `Switch to Databricks` — Claude will ask for your workspace URL, HTTP path, and access token.
 
-### Set up GitHub PRs
+### Raise PRs
 
-Tell Claude: `Configure GitHub` — Claude will ask for your token and repository name.
+Make sure your project directory is a git repo with a remote configured. When you say "raise a PR", Claude pushes the migration branch and gives you a direct link to open it on GitHub — no token setup required.
 
 ---
 
@@ -141,4 +147,4 @@ Tell Claude: `Configure GitHub` — Claude will ask for your token and repositor
 | Python version error | Ensure Python 3.11+ is installed: `python3 --version` |
 | DuckDB file not found | Re-run setup or check that `~/.prelight/prelight.duckdb` exists |
 | Databricks connection failed | Verify `host` starts with `https://`, token is valid, warehouse is running |
-| GitHub PR fails | Verify the token has repo read/write access |
+| Push fails on raise_pr | Verify the repo has a remote configured: `git remote -v` |

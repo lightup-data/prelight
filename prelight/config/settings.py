@@ -101,27 +101,6 @@ class DuckDBConfig(BaseModel):
         return v
 
 
-class GithubConfig(BaseModel):
-    token: str
-    repo: str
-    migrations_folder: str = "migrations"  # directory where per-PR SQL files are created
-    base_branch: str = "main"
-
-    @field_validator("repo")
-    @classmethod
-    def repo_must_have_slash(cls, v: str) -> str:
-        if "/" not in v:
-            raise ValueError("must be in format 'owner/repository-name'")
-        return v
-
-    @field_validator("token")
-    @classmethod
-    def token_must_be_nonempty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("must be non-empty")
-        return v
-
-
 class QualityConfig(BaseModel):
     row_count_drift_pct: int = 5
 
@@ -129,9 +108,6 @@ class QualityConfig(BaseModel):
 class Settings(BaseModel):
     databricks: DatabricksConfig | None = None
     duckdb: DuckDBConfig | None = None
-    # GitHub is optional at startup — required only when raise_pr is called.
-    # Users can add it later via the configure_github tool or by editing config.yaml.
-    github: GithubConfig | None = None
     quality: QualityConfig = QualityConfig()
 
     @model_validator(mode="after")

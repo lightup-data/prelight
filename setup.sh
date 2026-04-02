@@ -9,8 +9,7 @@
 #    3. Installs all Python dependencies
 #    4. Creates config.yaml with a local DuckDB database (zero infra needed)
 #    5. Creates the DuckDB file and loads demo data (orders + customers)
-#    6. Prompts for GitHub token so you can raise PRs  (optional — skip with Enter)
-#    7. Registers Prelight with Claude Desktop and Claude Code CLI
+#    6. Registers Prelight with Claude Desktop and Claude Code CLI
 #
 #  After this script finishes:
 #    • Restart Claude Desktop (Cmd+Q, then reopen)
@@ -144,6 +143,9 @@ success "MCP server registered"
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}Prelight installed.${RESET}"
+echo ""
+echo -e "${CYAN}  Tip: Open Claude Code from inside a git repo when working with your own data."
+echo -e "  Prelight writes migration files and notes directly into your repo as you work.${RESET}"
 echo ""
 echo -e "${BOLD}Next steps:${RESET}"
 echo ""
