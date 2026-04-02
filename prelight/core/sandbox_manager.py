@@ -8,15 +8,6 @@ from prelight.core.clients import get_client
 
 
 @dataclass
-class WorkspaceRecord:
-    workspace_name: str
-    sandbox_names: list[str]
-    created_at: str
-    workspace_quality_run_id: str | None = None
-    all_quality_passed: bool = False
-
-
-@dataclass
 class SandboxRecord:
     sandbox_name: str
     source_table: str
@@ -30,7 +21,6 @@ class SandboxRecord:
 
 
 _registry: dict[str, SandboxRecord] = {}
-_workspace_registry: dict[str, WorkspaceRecord] = {}
 
 
 def create_sandbox(source_table: str) -> SandboxRecord:
@@ -94,61 +84,3 @@ def mark_quality_passed(sandbox_name: str) -> None:
 
 def list_sandboxes() -> list[SandboxRecord]:
     return list(_registry.values())
-
-
-def create_workspace(workspace_name: str, sandbox_names: list[str]) -> WorkspaceRecord:
-    if workspace_name in _workspace_registry:
-        raise ValueError(
-            f"❌ Workspace '{workspace_name}' already exists."
-        )
-    if len(sandbox_names) < 2:
-        raise ValueError(
-            f"❌ A workspace needs at least 2 sandboxes. "
-            f"For a single sandbox use raise_pr directly."
-        )
-    if len(sandbox_names) != len(set(sandbox_names)):
-        raise ValueError("❌ Duplicate sandbox names in workspace.")
-
-    records = [get_sandbox(name) for name in sandbox_names]
-
-    # each source table may only appear once per workspace
-    source_tables = [r.source_table for r in records]
-    if len(source_tables) != len(set(source_tables)):
-        duplicates = [t for t in source_tables if source_tables.count(t) > 1]
-        raise ValueError(
-            f"❌ Multiple sandboxes from the same source table: {', '.join(set(duplicates))}. "
-            f"Each source table may appear only once in a workspace."
-        )
-
-    record = WorkspaceRecord(
-        workspace_name=workspace_name,
-        sandbox_names=sandbox_names,
-        created_at=datetime.now(timezone.utc).isoformat(),
-    )
-    _workspace_registry[workspace_name] = record
-    return record
-
-
-def get_workspace(workspace_name: str) -> WorkspaceRecord:
-    record = _workspace_registry.get(workspace_name)
-    if record is None:
-        raise ValueError(
-            f"❌ No workspace found named '{workspace_name}'. Use create_workspace first."
-        )
-    return record
-
-
-def list_workspaces() -> list[WorkspaceRecord]:
-    return list(_workspace_registry.values())
-
-
-def mark_workspace_quality_passed(workspace_name: str, workspace_run_id: str) -> None:
-    record = get_workspace(workspace_name)
-    record.workspace_quality_run_id = workspace_run_id
-    record.all_quality_passed = True
-
-
-def mark_workspace_quality_failed(workspace_name: str, workspace_run_id: str) -> None:
-    record = get_workspace(workspace_name)
-    record.workspace_quality_run_id = workspace_run_id
-    record.all_quality_passed = False

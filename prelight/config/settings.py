@@ -129,7 +129,7 @@ class QualityConfig(BaseModel):
 class Settings(BaseModel):
     databricks: DatabricksConfig | None = None
     duckdb: DuckDBConfig | None = None
-    # GitHub is optional at startup — required only when raise_pr / raise_workspace_pr is called.
+    # GitHub is optional at startup — required only when raise_pr is called.
     # Users can add it later via the configure_github tool or by editing config.yaml.
     github: GithubConfig | None = None
     quality: QualityConfig = QualityConfig()

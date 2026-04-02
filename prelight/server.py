@@ -404,194 +404,7 @@ def raise_pr(sandbox_name: str, description: str, context_notes: str = "") -> st
         return f"❌ Failed to raise PR: {e}"
 
 
-# ── Tool 10: create_workspace ──────────────────────────────────────────────────
-
-
-@mcp.tool()
-def create_workspace(workspace_name: str, sandbox_names: list[str]) -> str:
-    """Group two or more existing sandboxes into a named workspace so they can be
-    quality-checked and raised as a single PR together. Use this when a single request
-    touches multiple tables. Each sandbox must already exist (created via create_sandbox).
-    Each source table may appear only once in a workspace."""
-    try:
-        record = sandbox_manager.create_workspace(workspace_name, sandbox_names)
-        lines = []
-        for name in record.sandbox_names:
-            sbx = sandbox_manager.get_sandbox(name)
-            lines.append(f"  • {name}  →  {sbx.source_table}")
-        return (
-            f"✅ Workspace '{workspace_name}' created with {len(sandbox_names)} sandboxes:\n"
-            + "\n".join(lines)
-        )
-    except ValueError as e:
-        return str(e)
-    except Exception as e:
-        return f"❌ Failed to create workspace: {e}"
-
-
-# ── Tool 11: run_workspace_quality_checks ─────────────────────────────────────
-
-
-@mcp.tool()
-def run_workspace_quality_checks(workspace_name: str) -> str:
-    """Run quality checks across all sandboxes in a workspace in one go. Results are
-    stored per-sandbox and included in the workspace PR description. Quality checks are
-    advisory — the workspace PR can be raised regardless of pass/fail.
-
-    Before calling this tool, Claude MUST call save_quality_checks for EACH sandbox in
-    the workspace. The process for each sandbox is identical to the single-sandbox flow:
-      1. Read the quality_checks/ library folder to find relevant templates
-      2. Examine the transformation SQL and table schema for that sandbox
-      3. Generate SQLs from library templates with real table/column names filled in
-      4. Add any bespoke checks specific to that transformation
-      5. Call save_quality_checks for that sandbox
-
-    CRITICAL — every check SQL must follow one of these two patterns:
-      Pattern 1 (status column, preferred): return a row with a 'status' column
-        containing 'PASS' or 'FAIL'. All library templates use this pattern.
-        Example: SELECT ..., CASE WHEN <cond> THEN 'PASS' ELSE 'FAIL' END AS status FROM ...
-      Pattern 2 (violation rows): return 0 rows = PASS, any rows = FAIL.
-        Example: SELECT * FROM sandbox WHERE key_col IS NULL
-
-    DO NOT write bare COUNT(*) queries with no status column — they always return 1 row
-    and will always be evaluated as FAIL regardless of the count value."""
-    try:
-        workspace = sandbox_manager.get_workspace(workspace_name)
-        records = [sandbox_manager.get_sandbox(name) for name in workspace.sandbox_names]
-
-        # Ensure each sandbox has checks defined before running
-        missing = [r.sandbox_name for r in records if not r.custom_quality_checks]
-        if missing:
-            return (
-                f"❌ The following sandboxes have no quality checks defined: "
-                f"{', '.join(missing)}. Call save_quality_checks for each sandbox first."
-            )
-
-        result = quality_checks.run_custom_checks_for_workspace(workspace_name, records)
-
-        # Update individual sandbox records
-        for sbx_result in result["per_sandbox_results"]:
-            sandbox_manager.store_quality_results(
-                sbx_result["sandbox_name"],
-                sbx_result["run_id"],
-                sbx_result["checks"],
-            )
-            if sbx_result["all_passed"]:
-                sandbox_manager.mark_quality_passed(sbx_result["sandbox_name"])
-
-        if result["all_passed"]:
-            sandbox_manager.mark_workspace_quality_passed(
-                workspace_name, result["workspace_run_id"]
-            )
-        else:
-            sandbox_manager.mark_workspace_quality_failed(
-                workspace_name, result["workspace_run_id"]
-            )
-
-        return _fmt_workspace_quality_report(result)
-    except ValueError as e:
-        return str(e)
-    except RuntimeError as e:
-        return str(e)
-    except Exception as e:
-        return f"❌ Workspace quality checks failed: {e}"
-
-
-# ── Tool 12: raise_workspace_pr ───────────────────────────────────────────────
-
-
-@mcp.tool()
-def raise_workspace_pr(
-    workspace_name: str,
-    description: str,
-) -> str:
-    """Raise a single GitHub PR covering all tables in the workspace. All sandboxes must
-    have transformations applied. Quality checks are advisory — the PR can be raised
-    regardless of pass/fail. Check results are included in the PR description when available."""
-    try:
-        settings = get_settings()
-        if not settings.github:
-            return (
-                "❌ GitHub is not configured — cannot raise a PR.\n"
-                "Use the configure_github tool to add your GitHub token and repo."
-            )
-
-        workspace = sandbox_manager.get_workspace(workspace_name)
-        records = [sandbox_manager.get_sandbox(name) for name in workspace.sandbox_names]
-
-        # Guard: every sandbox must have at least one transformation
-        empty = [r.sandbox_name for r in records if not r.applied_sqls]
-        if empty:
-            return (
-                f"❌ The following sandboxes have no transformations applied: "
-                f"{', '.join(empty)}. Use apply_transformation first."
-            )
-
-        pr_url = github_client.raise_workspace_migration_pr(
-            workspace_name=workspace_name,
-            sandbox_records=records,
-            workspace_quality_run_id=workspace.workspace_quality_run_id,
-            description=description,
-        )
-
-        total = sum(len(r.applied_sqls) for r in records)
-        table_lines = "\n".join(
-            f"  • {r.source_table} ({len(r.applied_sqls)} transformation(s))"
-            for r in records
-        )
-        return (
-            f"✅ Workspace PR opened successfully!\n"
-            f"URL: {pr_url}\n\n"
-            f"Summary:\n"
-            f"  Workspace:             {workspace_name}\n"
-            f"  Workspace run ID:      {workspace.workspace_quality_run_id or 'not run'}\n"
-            f"  Total transformations: {total}\n"
-            f"  Tables:\n{table_lines}"
-        )
-    except ValueError as e:
-        return str(e)
-    except RuntimeError as e:
-        return str(e)
-    except Exception as e:
-        return f"❌ Failed to raise workspace PR: {e}"
-
-
-def _fmt_workspace_quality_report(result: dict) -> str:
-    lines = [
-        f"Workspace Quality Check Report",
-        f"Workspace:        {result['workspace_name']}",
-        f"Workspace Run ID: {result['workspace_run_id']}",
-        "",
-    ]
-    passed_count = sum(1 for r in result["per_sandbox_results"] if r["all_passed"])
-    total_count = len(result["per_sandbox_results"])
-
-    for sbx_result in result["per_sandbox_results"]:
-        lines.append(
-            f"{'━' * 3} {sbx_result['source_table']} ({sbx_result['sandbox_name']}) {'━' * 3}"
-        )
-        for check in sbx_result["checks"]:
-            icon = "✅" if check["status"] == "PASS" else "❌"
-            lines.append(f"{icon} {check['check']}: {check['status']}")
-            lines.append(f"   Result:   {check['result']}")
-            lines.append(f"   Expected: {check['expected']}")
-            if check.get("detail"):
-                lines.append(f"   Detail:   {check['detail']}")
-        overall = "✅ ALL CHECKS PASSED" if sbx_result["all_passed"] else "❌ SOME CHECKS FAILED"
-        lines.append(overall)
-        lines.append("")
-
-    lines.append("═" * 50)
-    if result["all_passed"]:
-        lines.append(f"Overall: ✅ All {total_count} sandboxes passed quality checks")
-    else:
-        lines.append(
-            f"Overall: ❌ {total_count - passed_count} of {total_count} sandboxes failed"
-        )
-    return "\n".join(lines)
-
-
-# ── Tool 13: configure_duckdb ─────────────────────────────────────────────────
+# ── Tool 10: configure_duckdb ─────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -665,7 +478,7 @@ def configure_duckdb(
     )
 
 
-# ── Tool 14: configure_databricks ─────────────────────────────────────────────
+# ── Tool 11: configure_databricks ─────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -743,7 +556,7 @@ def configure_databricks(
     )
 
 
-# ── Tool 15: configure_github ─────────────────────────────────────────────────
+# ── Tool 12: configure_github ─────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -790,7 +603,7 @@ def configure_github(
     )
 
 
-# ── Tool 16: setup_demo ───────────────────────────────────────────────────────
+# ── Tool 13: setup_demo ───────────────────────────────────────────────────────
 
 
 @mcp.tool()
