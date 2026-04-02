@@ -609,9 +609,10 @@ def run_quality_checks(sandbox_name: str) -> str:
 
 @mcp.tool()
 def raise_pr(description: str) -> str:
-    """Push the current migration branch and provide a link to open a PR. Call this when
-    the user says 'raise a PR' or similar. Use their exact words as the description.
-    description: clear description of what this migration does — becomes the PR title
+    """Push the current migration branch and raise a PR with full title and description.
+    Call this when the user says 'raise a PR' or similar. Use their exact words as the
+    description — it becomes the PR title and shapes the body.
+    description: clear description of what this migration does
       (e.g. 'Apply 10% discount to orders over $500 and mark customers as premium')"""
     if not _session_branch or not _repo_root:
         return (
@@ -619,7 +620,7 @@ def raise_pr(description: str) -> str:
             "Call start_migration(description, working_directory) first."
         )
 
-    # Check remote
+    # Check remote exists
     ok, remote_url = _run_git("remote", "get-url", "origin", cwd=_repo_root)
     if not ok or not remote_url:
         return (
@@ -629,27 +630,61 @@ def raise_pr(description: str) -> str:
             f"  git push -u origin {_session_branch}"
         )
 
-    # Push
-    ok, output = _run_git("push", "-u", "origin", _session_branch, cwd=_repo_root)
+    # Push branch
+    ok, push_output = _run_git("push", "-u", "origin", _session_branch, cwd=_repo_root)
     if not ok:
-        return f"❌ Push failed: {output}"
+        return f"❌ Push failed: {push_output}"
 
-    # Construct compare URL if GitHub remote
-    pr_link = ""
+    # Read MIGRATION_NOTES.md as PR body
+    notes_path = Path(_repo_root) / "MIGRATION_NOTES.md"
+    pr_body = notes_path.read_text() if notes_path.exists() else ""
+
+    pr_title = f"[Migration] {description}"
+    base_branch = _detect_base_branch(_repo_root) or "main"
+
+    # Try gh CLI first — creates the PR directly
+    gh_check = subprocess.run(["gh", "--version"], capture_output=True)
+    if gh_check.returncode == 0:
+        result = subprocess.run(
+            [
+                "gh", "pr", "create",
+                "--title", pr_title,
+                "--body", pr_body,
+                "--base", base_branch,
+                "--head", _session_branch,
+            ],
+            capture_output=True,
+            text=True,
+            cwd=_repo_root,
+        )
+        if result.returncode == 0:
+            pr_url = result.stdout.strip()
+            return (
+                f"✅ PR raised: {pr_url}\n\n"
+                f"**{pr_title}**"
+            )
+        # gh failed (e.g. not authenticated) — fall through to compare URL
+        gh_error = result.stderr.strip()
+    else:
+        gh_error = ""
+
+    # Fallback — return GitHub compare URL with title pre-filled
     match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", remote_url)
     if match:
         repo_path = match.group(1)
-        encoded_title = description.replace(" ", "+")
+        from urllib.parse import quote
         compare_url = (
             f"https://github.com/{repo_path}/compare/{_session_branch}"
-            f"?expand=1&title=%5BMigration%5D+{encoded_title}"
+            f"?expand=1&title={quote(pr_title)}"
         )
-        pr_link = f"\n\nOpen your PR here:\n{compare_url}"
+        fallback_msg = f"\n\n(`gh` CLI unavailable{f': {gh_error}' if gh_error else ''} — open PR manually)\n{compare_url}"
+    else:
+        fallback_msg = f"\n\nBranch `{_session_branch}` pushed — open a PR from your GitHub repo."
 
     return (
         f"✅ Branch `{_session_branch}` pushed.\n\n"
-        f"PR title: **[Migration] {description}**"
-        f"{pr_link}"
+        f"**{pr_title}**"
+        f"{fallback_msg}"
     )
 
 
