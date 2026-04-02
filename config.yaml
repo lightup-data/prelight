@@ -1,0 +1,14 @@
+duckdb:
+  path: "~/.prelight/prelight.duckdb"
+  schema: "analytics"
+  sandbox_prefix: "sbx_"
+  audit_table: "qg_quality_results"
+
+github:
+  token: "token"
+  repo: "lightup-data/prelight"
+  migrations_folder: "migrations"
+  base_branch: "master"
+
+quality:
+  row_count_drift_pct: 5
