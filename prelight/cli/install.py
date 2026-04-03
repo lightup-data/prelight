@@ -363,36 +363,6 @@ def _collect_duckdb_config(existing_file: bool) -> str:
     )
 
 
-def _collect_github_config() -> str | None:
-    """Interactive wizard for GitHub credentials. Returns the github: YAML block, or None if skipped."""
-    print("\n── GitHub (optional) ─────────────────────────────────────────────")
-    print("  GitHub is needed to raise migration PRs.")
-    print("  You can skip this now and configure it later by saying")
-    print("  'Configure GitHub' in Claude.")
-    print()
-
-    github_token = _prompt("Personal access token  (repo scope) — press Enter to skip")
-    if not github_token:
-        return None
-
-    github_repo = ""
-    while not github_repo:
-        github_repo = _prompt("Repository  (owner/repo-name, e.g. alice/data-platform)")
-        if "/" not in github_repo:
-            print("    Must be in owner/repo-name format.")
-            github_repo = ""
-
-    base_branch = _prompt("Base branch for PRs", "main")
-
-    return (
-        f'github:\n'
-        f'  token: "{github_token}"\n'
-        f'  repo: "{github_repo}"\n'
-        f'  migrations_folder: "migrations"\n'
-        f'  base_branch: "{base_branch}"\n'
-    )
-
-
 # ── Wizard ────────────────────────────────────────────────────────────────────
 
 
@@ -432,15 +402,10 @@ def run_install() -> None:  # noqa: C901
             backend_block = _collect_duckdb_config(existing_file=True)
             is_duckdb = True
 
-        # 3. GitHub config (optional)
-        github_block = _collect_github_config()
-
         print()
 
-        # 4. Write config.yaml
+        # 3. Write config.yaml
         config_content = backend_block + "\n" + "quality:\n  row_count_drift_pct: 5\n"
-        if github_block:
-            config_content += "\n" + github_block
         config_path.write_text(config_content, encoding="utf-8")
         print(f"  config.yaml written to {config_path}")
 
@@ -484,19 +449,14 @@ def run_install() -> None:  # noqa: C901
         import yaml
         raw = yaml.safe_load(config_path.read_text())
         backend = "duckdb" if "duckdb" in raw else "databricks"
-        has_github = "github" in raw
     except Exception:
         backend = "databricks"
-        has_github = False
 
     print("  Next steps:")
     if backend == "duckdb":
         print("    1. Start chatting — demo data is ready!")
     else:
         print("    1. Load demo data:  uv run prelight setup-demo")
-
-    if not has_github:
-        print("    2. To enable PR raising, tell Claude: \"Configure GitHub\"")
 
     print()
     print("  Claude Desktop:")

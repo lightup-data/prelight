@@ -18,6 +18,7 @@ class SandboxRecord:
     quality_check_results: list[dict] = field(default_factory=list)
     custom_quality_checks: list[dict] = field(default_factory=list)
     schema_columns: list[dict] = field(default_factory=list)
+    migration_file_path: str | None = None
 
 
 _registry: dict[str, SandboxRecord] = {}
