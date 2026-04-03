@@ -134,8 +134,10 @@ def list_table_names(schema: str) -> list[str]:
 
 def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
     """Clone a production table into a sandbox using the sandbox connection."""
-    validate_identifier(source_table.split(".")[-1], "source table")
-    validate_identifier(sandbox_table.split(".")[-1], "sandbox table")
+    for part in source_table.split("."):
+        validate_identifier(part, "source table")
+    for part in sandbox_table.split("."):
+        validate_identifier(part, "sandbox table")
     execute_statement(
         f"CREATE TABLE {sandbox_table} AS SELECT * FROM {source_table}"
     )

@@ -16,8 +16,15 @@ dependencies = [
     "pydantic>=2.0.0",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=8.0.0"]
+
 [project.scripts]
 prelight = "prelight.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["prelight"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

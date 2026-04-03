@@ -110,8 +110,10 @@ def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
     """
     settings = get_settings()
     schema = validate_identifier(settings.duckdb.schema, "schema")
-    validate_identifier(source_table.split(".")[-1], "source table")
-    validate_identifier(sandbox_table.split(".")[-1], "sandbox table")
+    for part in source_table.split("."):
+        validate_identifier(part, "source table")
+    for part in sandbox_table.split("."):
+        validate_identifier(part, "sandbox table")
     execute_statement(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     execute_statement(
         f"CREATE TABLE {sandbox_table} AS SELECT * FROM {source_table}"
