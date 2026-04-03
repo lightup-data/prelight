@@ -50,8 +50,10 @@ def check_sql(sql: str, sandbox_prefix: str, audit_table: str) -> None:
     try:
         statements = sqlglot.parse(sql, error_level=sqlglot.ErrorLevel.WARN)
     except Exception as e:
-        logger.warning("sqlglot could not parse SQL (allowing through): %s", e)
-        return
+        raise ProductionWriteBlockedError(
+            f"🚫 SQL could not be parsed — blocking execution as a safety precaution. "
+            f"Parse error: {e}. Rewrite the SQL so it can be validated, or check for syntax errors."
+        )
 
     for statement in statements:
         if statement is None:
@@ -126,8 +128,10 @@ def check_select_only(sql: str) -> None:
     try:
         statements = sqlglot.parse(sql, error_level=sqlglot.ErrorLevel.WARN)
     except Exception as e:
-        logger.warning("sqlglot could not parse SQL (allowing through): %s", e)
-        return
+        raise ProductionWriteBlockedError(
+            f"🚫 SQL could not be parsed — blocking execution as a safety precaution. "
+            f"Parse error: {e}. Only valid SELECT statements are allowed on production tables."
+        )
 
     for statement in statements:
         if statement is None:
