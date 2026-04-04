@@ -3,6 +3,7 @@ from __future__ import annotations
 import duckdb
 
 from prelight.config.settings import get_settings
+from prelight.core.sql_utils import validate_identifier
 
 # Single persistent connection — DuckDB does not need separate read/write connections.
 # Production safety is enforced by SQL inspection (production_guard) the same way as
@@ -67,7 +68,8 @@ def execute_statement(sql: str) -> None:
 
 def get_table_schema(table: str) -> list[dict]:
     settings = get_settings()
-    schema = settings.duckdb.schema
+    schema = validate_identifier(settings.duckdb.schema, "schema")
+    table = validate_identifier(table, "table")
     full_table = f"{schema}.{table}" if "." not in table else table
     rows = execute_query(f"DESCRIBE {full_table}")
     return [
@@ -83,7 +85,8 @@ def get_table_schema(table: str) -> list[dict]:
 
 def get_row_count(table: str) -> int:
     settings = get_settings()
-    schema = settings.duckdb.schema
+    schema = validate_identifier(settings.duckdb.schema, "schema")
+    table = validate_identifier(table, "table")
     full_table = f"{schema}.{table}" if "." not in table else table
     rows = execute_query(f"SELECT COUNT(*) AS cnt FROM {full_table}")
     return int(rows[0]["cnt"])
@@ -91,6 +94,7 @@ def get_row_count(table: str) -> int:
 
 def list_table_names(schema: str) -> list[str]:
     """Return all base table names in the given schema."""
+    schema = validate_identifier(schema, "schema")
     rows = execute_query(
         f"SELECT table_name FROM information_schema.tables "
         f"WHERE table_schema = '{schema}' AND table_type = 'BASE TABLE'"
@@ -105,7 +109,11 @@ def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
     created before tables can be added to it.
     """
     settings = get_settings()
-    schema = settings.duckdb.schema
+    schema = validate_identifier(settings.duckdb.schema, "schema")
+    for part in source_table.split("."):
+        validate_identifier(part, "source table")
+    for part in sandbox_table.split("."):
+        validate_identifier(part, "sandbox table")
     execute_statement(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     execute_statement(
         f"CREATE TABLE {sandbox_table} AS SELECT * FROM {source_table}"
@@ -114,7 +122,8 @@ def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
 
 def table_exists(table: str) -> bool:
     settings = get_settings()
-    schema = settings.duckdb.schema
+    schema = validate_identifier(settings.duckdb.schema, "schema")
+    table = validate_identifier(table, "table")
     try:
         rows = execute_query(
             f"SELECT table_name FROM information_schema.tables "

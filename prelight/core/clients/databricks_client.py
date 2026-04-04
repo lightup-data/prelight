@@ -3,6 +3,7 @@ from __future__ import annotations
 from databricks import sql as dbsql
 
 from prelight.config.settings import get_settings
+from prelight.core.sql_utils import validate_identifier
 
 # Two separate connections:
 #   _prod_connection    — uses prod_token (read-only); for SELECT queries on production tables
@@ -92,7 +93,8 @@ def execute_statement(sql: str) -> None:
 
 def get_table_schema(table: str) -> list[dict]:
     settings = get_settings()
-    schema = settings.databricks.schema
+    schema = validate_identifier(settings.databricks.schema, "schema")
+    table = validate_identifier(table, "table")
     full_table = f"{schema}.{table}" if "." not in table else table
     rows = execute_query(f"DESCRIBE TABLE {full_table}")
     result = []
@@ -112,7 +114,8 @@ def get_table_schema(table: str) -> list[dict]:
 
 def get_row_count(table: str) -> int:
     settings = get_settings()
-    schema = settings.databricks.schema
+    schema = validate_identifier(settings.databricks.schema, "schema")
+    table = validate_identifier(table, "table")
     full_table = f"{schema}.{table}" if "." not in table else table
     rows = execute_query(f"SELECT COUNT(*) AS cnt FROM {full_table}")
     return int(rows[0]["cnt"])
@@ -120,6 +123,7 @@ def get_row_count(table: str) -> int:
 
 def list_table_names(schema: str) -> list[str]:
     """Return all table names in the given schema."""
+    schema = validate_identifier(schema, "schema")
     rows = execute_query(f"SHOW TABLES IN {schema}")
     return [
         r.get("tableName", r.get("table_name", ""))
@@ -130,6 +134,10 @@ def list_table_names(schema: str) -> list[str]:
 
 def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
     """Clone a production table into a sandbox using the sandbox connection."""
+    for part in source_table.split("."):
+        validate_identifier(part, "source table")
+    for part in sandbox_table.split("."):
+        validate_identifier(part, "sandbox table")
     execute_statement(
         f"CREATE TABLE {sandbox_table} AS SELECT * FROM {source_table}"
     )
@@ -137,7 +145,8 @@ def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
 
 def table_exists(table: str) -> bool:
     settings = get_settings()
-    schema = settings.databricks.schema
+    schema = validate_identifier(settings.databricks.schema, "schema")
+    table = validate_identifier(table, "table")
     try:
         rows = execute_query(f"SHOW TABLES IN {schema} LIKE '{table}'")
         return len(rows) > 0

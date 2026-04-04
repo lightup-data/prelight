@@ -1,5 +1,4 @@
 import os
-import sys
 import warnings
 from pathlib import Path
 
@@ -173,28 +172,25 @@ def get_settings() -> Settings:
     config_path = _find_config_path()
     if not config_path.exists():
         env_hint = (
-            f"\n   (looked at PRELIGHT_CONFIG={config_path})"
+            f" (looked at PRELIGHT_CONFIG={config_path})"
             if os.environ.get("PRELIGHT_CONFIG")
-            else f"\n   (looked for config.yaml in {Path.cwd()})"
+            else f" (looked for config.yaml in {Path.cwd()})"
         )
-        print(
+        raise RuntimeError(
             f"❌ config.yaml not found.{env_hint}\n"
             "   Run setup.sh to create one, or tell Claude 'Configure DuckDB' / 'Configure Databricks'.\n"
             "   Then set PRELIGHT_CONFIG=/absolute/path/to/config.yaml in Claude Desktop."
         )
-        sys.exit(1)
 
     try:
         raw = yaml.safe_load(config_path.read_text())
     except yaml.YAMLError as e:
-        print(f"❌ config.yaml is not valid YAML:\n   {e}")
-        sys.exit(1)
+        raise RuntimeError(f"❌ config.yaml is not valid YAML:\n   {e}") from e
 
     if not raw:
-        print(
+        raise RuntimeError(
             "❌ config.yaml is empty. Add a 'databricks:' or 'duckdb:' section — see README.md."
         )
-        sys.exit(1)
 
     try:
         _settings = Settings(**raw)
@@ -203,7 +199,6 @@ def get_settings() -> Settings:
         for err in e.errors():
             loc = " -> ".join(str(p) for p in err["loc"])
             lines.append(f"   {loc}: {err['msg']}")
-        print("❌ config.yaml validation failed:\n" + "\n".join(lines))
-        sys.exit(1)
+        raise RuntimeError("❌ config.yaml validation failed:\n" + "\n".join(lines)) from e
 
     return _settings
