@@ -7,6 +7,3 @@ dist/
 .idea/
 *.duckdb
 uv.lock
-
-# Config may contain database tokens/credentials — never commit
-config.yaml
