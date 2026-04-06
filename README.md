@@ -21,7 +21,7 @@ Claude will have live tables ready to work with the moment setup finishes.
 **Claude Desktop:** fully quit and reopen, then start a new conversation.  
 **Claude Code:** open a new session.
 
-Type: **List my tables**
+Type: **List my tables using prelight**
 
 ---
 
@@ -46,7 +46,7 @@ You've got an `orders` and `customers` table ready to go. Here's a full end-to-e
 ### Explore — understand what's there before you change anything
 
 ```
-List my tables
+List my tables using prelight
 ```
 ```
 Describe the orders table
