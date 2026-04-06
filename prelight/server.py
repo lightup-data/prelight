@@ -53,9 +53,12 @@ def _detect_base_branch(repo_root: str) -> str | None:
       4. None — brand new repo with no commits yet (git init, no commits)
     """
     # Option 1: what origin considers its default branch
+    # symbolic-ref --short returns e.g. "origin/main" or "origin/feature/foo"
+    # Strip the "origin/" prefix to preserve branch names that contain slashes.
     ok, ref = _run_git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=repo_root)
     if ok and ref:
-        return ref.split("/")[-1]  # "origin/main" → "main"
+        prefix = "origin/"
+        return ref[len(prefix):] if ref.startswith(prefix) else ref
 
     # Option 2: local main
     ok, _ = _run_git("show-ref", "--verify", "refs/heads/main", cwd=repo_root)
@@ -89,20 +92,13 @@ def _fmt_rows(rows: list[dict], limit: int = 50) -> str:
     return "\n".join([header_line, sep] + data_lines)
 
 
-def _fmt_quality_report(result: dict) -> str:
-    check_parts = []
-    for check in result["checks"]:
-        icon = "✅" if check["status"] == "PASS" else "❌"
-        part = f"{icon} {check['check']}: {check['status']} (result: {check['result']}, expected: {check['expected']})"
-        if check.get("detail"):
-            part += f" [detail: {check['detail']}]"
-        check_parts.append(part)
-    overall = "✅ ALL CHECKS PASSED" if result["all_passed"] else "❌ SOME CHECKS FAILED"
-    return (
-        f"Quality Check Report | Run ID: {result['run_id']} | Sandbox: {result['sandbox_name']} | Source: {result['source_table']} | "
-        + " | ".join(check_parts)
-        + f" | {overall}"
-    )
+def _commit_and_get_hash(commit_msg: str, cwd: str) -> tuple[bool, str]:
+    """Run a git commit and return (success, short_hash)."""
+    ok, _ = _run_git("commit", "-m", commit_msg, cwd=cwd)
+    if ok:
+        _, short_hash = _run_git("rev-parse", "--short", "HEAD", cwd=cwd)
+        return True, short_hash
+    return False, ""
 
 
 # ── Tool 1: start_migration ───────────────────────────────────────────────────
@@ -153,12 +149,15 @@ def start_migration(
             f"Say **yes** and I'll call start_migration again with init_git=True."
         )
 
-    # Stash uncommitted changes if the working tree is dirty
+    # Stash only tracked changes — git stash ignores untracked files by default,
+    # so we check for them separately to give an accurate status message.
     ok, status_out = _run_git("status", "--porcelain", cwd=repo_root)
-    stash_msg = ""
-    if status_out:
+    lines = status_out.splitlines() if status_out else []
+    tracked_changes = [l for l in lines if l and not l.startswith("??")]
+    untracked_files = [l for l in lines if l.startswith("??")]
+
+    if tracked_changes:
         _run_git("stash", cwd=repo_root)
-        stash_msg = " ⚠️  Stashed your uncommitted changes before creating the migration branch."
 
     # Always cut the new branch from the base branch so each migration is independent
     base_branch = _detect_base_branch(repo_root)
@@ -175,9 +174,20 @@ def start_migration(
     _session_branch = branch_name
     _repo_root = repo_root
 
+    if tracked_changes:
+        stash_line = f"\n  Working dir:  ⚠️  {len(tracked_changes)} tracked change(s) stashed automatically"
+    elif untracked_files:
+        stash_line = f"\n  Working dir:  {len(untracked_files)} untracked file(s) present (not stashed)"
+    else:
+        stash_line = "\n  Working dir:  clean"
+    base_line = f"\n  Cut from:     {base_branch}" if base_branch else ""
     return (
-        f"✅ Migration started on branch `{branch_name}`."
-        f"{stash_msg} Ready — call create_sandbox to begin."
+        f"✅ Migration branch created\n\n"
+        f"  Branch:       {branch_name}"
+        f"{base_line}"
+        f"\n  Repo root:    {repo_root}"
+        f"{stash_line}\n\n"
+        f"Next: call create_sandbox to clone the table you want to transform."
     )
 
 
@@ -290,9 +300,18 @@ def create_sandbox(table: str) -> str:
                 f"🔒 Production guard active — "
                 f"writes to production tables are hard-blocked by SQL inspection"
             )
+        schema = settings.db_schema
+        col_summary = ", ".join(
+            f"{c['column_name']} ({c['data_type']})" for c in record.schema_columns
+        ) if record.schema_columns else "—"
         return (
-            f"✅ Sandbox created: {record.sandbox_name} "
-            f"(copied from {table}, {row_count:,} rows) {identity_msg}"
+            f"✅ Sandbox created\n\n"
+            f"  Production table:  {schema}.{table}\n"
+            f"  Sandbox table:     {schema}.{record.sandbox_name}\n"
+            f"  Rows copied:       {row_count:,}\n"
+            f"  Columns:           {col_summary}\n\n"
+            f"{identity_msg}\n\n"
+            f"Next: call apply_transformation(sandbox_name='{record.sandbox_name}', sql=...)"
         )
     except RuntimeError as e:
         return str(e)
@@ -325,10 +344,16 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
         sandbox_manager.log_transformation(sandbox_name, sql)
 
         # Write migration SQL to local file and commit
+        migration_file_path = ""
+        commit_hash = ""
+        commit_msg = ""
+        sql_display = sql
+
         if _repo_root and _session_branch:
             schema = settings.db_schema
             prod_sql = sql_utils.rewrite_to_production(sql, schema, sandbox_name, record.source_table)
             sql_line = prod_sql if prod_sql.rstrip().endswith(";") else prod_sql + ";"
+            sql_display = sql_line
             migrations_dir = Path(_repo_root) / "migrations"
             migrations_dir.mkdir(exist_ok=True)
 
@@ -337,6 +362,7 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
                     f.write(f"\n{sql_line}\n")
                 n = len(record.applied_sqls)
                 commit_msg = f"migration({record.source_table}): add transformation #{n}"
+                migration_file_path = record.migration_file_path
             else:
                 now = datetime.now(timezone.utc)
                 file_ts = now.strftime("%Y-%m-%d-%H%M%S")
@@ -350,30 +376,32 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
                 )
                 migration_path.write_text(content)
                 record.migration_file_path = str(migration_path)
+                migration_file_path = str(migration_path)
                 commit_msg = f"migration({record.source_table}): add transformation SQL"
 
             _run_git("add", "migrations/", cwd=_repo_root)
-            _run_git("commit", "-m", commit_msg, cwd=_repo_root)
+            _, commit_hash = _commit_and_get_hash(commit_msg, _repo_root)
 
         if settings.backend == "databricks" and settings.databricks.dual_token_mode:
-            guard_msg = (
-                "🔒 Sandbox identity used — production tables are write-protected by credential"
-            )
+            guard_msg = "🔒 Sandbox identity used — production tables are write-protected by credential"
         else:
-            guard_msg = (
-                "🔒 Production guard verified — SQL targets sandbox only, production tables untouched"
-            )
+            guard_msg = "🔒 Production guard verified — SQL targets sandbox only, production tables untouched"
+
+        n_applied = len(record.applied_sqls)
+        if migration_file_path:
+            file_lines = f"\n  File written:  {migration_file_path}"
+            if commit_hash:
+                file_lines += f"\n  Git commit:    {commit_hash} — \"{commit_msg}\""
+        else:
+            file_lines = ""
+
         return (
-            f"✅ Transformation applied to sandbox '{sandbox_name}'. "
-            f"{guard_msg}. "
-            f"SQL logged for PR generation. "
-            f"Next: read the quality_checks/ library folder, examine this transformation and the "
-            f"table schema, pick the relevant checks, generate the comparison SQLs with real table "
-            f"and column names filled in, then call save_quality_checks. After that the engineer "
-            f"can call run_quality_checks. "
-            f"IMPORTANT: every check SQL must use either (a) a 'status' column returning 'PASS'/'FAIL' "
-            f"(as all library templates do), or (b) violation-row style returning 0 rows=PASS. "
-            f"Bare COUNT(*) queries with no status column always fail evaluation."
+            f"✅ Transformation #{n_applied} applied to '{sandbox_name}'"
+            f"{file_lines}"
+            f"\n\n  SQL saved:\n    {sql_display}\n\n"
+            f"{guard_msg}\n\n"
+            f"Next: read quality_checks/ library, pick relevant checks, then call save_quality_checks.\n"
+            f"IMPORTANT: check SQL must use a 'status' column ('PASS'/'FAIL') or violation-row style (0 rows = PASS)."
         )
     except production_guard.ProductionWriteBlockedError as e:
         return str(e)
@@ -448,6 +476,10 @@ def save_quality_checks(sandbox_name: str, checks: list[dict]) -> str:
         record.custom_quality_checks = checks
 
         # Write check SQL files to local repo and commit
+        checks_dir_str = ""
+        qc_commit_hash = ""
+        qc_commit_msg = ""
+
         if _repo_root and _session_branch:
             checks_dir = Path(_repo_root) / "quality_checks" / "runs" / sandbox_name
             checks_dir.mkdir(parents=True, exist_ok=True)
@@ -460,18 +492,28 @@ def save_quality_checks(sandbox_name: str, checks: list[dict]) -> str:
                     f"-- {description}\n-- Sandbox: {sandbox_name}\n\n{check_sql}\n"
                 )
             _run_git("add", "quality_checks/", cwd=_repo_root)
-            n = len(checks)
-            _run_git(
-                "commit", "-m",
-                f"quality_checks({record.source_table}): save {n} check definition{'s' if n != 1 else ''}",
-                cwd=_repo_root,
-            )
+            n_checks = len(checks)
+            qc_commit_msg = f"quality_checks({record.source_table}): save {n_checks} check definition{'s' if n_checks != 1 else ''}"
+            _, qc_commit_hash = _commit_and_get_hash(qc_commit_msg, _repo_root)
+            checks_dir_str = str(checks_dir)
 
-        names = [c.get("name", "?") for c in checks]
+        n = len(checks)
+        check_lines = []
+        for i, c in enumerate(checks, 1):
+            name = c.get("name", "?")
+            desc = c.get("description", "—")
+            check_lines.append(f"    {i}. {name}.sql  —  {desc}")
+
+        dir_line = f"\n  Directory:   {checks_dir_str}" if checks_dir_str else ""
+        commit_line = f"\n  Git commit:  {qc_commit_hash} — \"{qc_commit_msg}\"" if qc_commit_hash else ""
+
         return (
-            f"✅ {len(checks)} quality check(s) saved for sandbox '{sandbox_name}': "
-            + ", ".join(names)
-            + ". Call run_quality_checks to execute them."
+            f"✅ {n} quality check{'s' if n != 1 else ''} saved for '{sandbox_name}'"
+            f"{dir_line}"
+            f"{commit_line}"
+            f"\n\n  Checks written:\n"
+            + "\n".join(check_lines)
+            + f"\n\nNext: call run_quality_checks(sandbox_name='{sandbox_name}')"
         )
     except ValueError as e:
         return str(e)
@@ -506,6 +548,11 @@ def run_quality_checks(sandbox_name: str) -> str:
             sandbox_manager.mark_quality_passed(sandbox_name)
 
         # Write context/{table}.md and MIGRATION_NOTES.md to local repo
+        context_path_str = ""
+        context_hash = ""
+        notes_path_str = ""
+        notes_hash = ""
+
         if _repo_root and _session_branch:
             settings = get_settings()
             schema = settings.db_schema
@@ -527,11 +574,9 @@ def run_quality_checks(sandbox_name: str) -> str:
             )
             context_path.write_text(context_md)
             _run_git("add", "context/", cwd=_repo_root)
-            _run_git(
-                "commit", "-m",
-                f"context({record.source_table}): update table context",
-                cwd=_repo_root,
-            )
+            context_commit_msg = f"context({record.source_table}): update table context"
+            _, context_hash = _commit_and_get_hash(context_commit_msg, _repo_root)
+            context_path_str = str(context_path)
 
             # 2. MIGRATION_NOTES.md — append table section (accumulates across tables)
             production_sqls = [
@@ -575,19 +620,50 @@ def run_quality_checks(sandbox_name: str) -> str:
                 )
 
             _run_git("add", "MIGRATION_NOTES.md", cwd=_repo_root)
-            _run_git(
-                "commit", "-m",
-                f"notes({record.source_table}): add quality check results",
-                cwd=_repo_root,
-            )
+            notes_commit_msg = f"notes({record.source_table}): add quality check results"
+            _, notes_hash = _commit_and_get_hash(notes_commit_msg, _repo_root)
+            notes_path_str = str(notes_path)
 
-        report = _fmt_quality_report(result)
-        pr_nudge = (
-            f" Changes committed to branch `{_session_branch}`. "
-            f"Say **raise a PR** with a short description when you're ready to push."
+        # Build aligned check results table
+        checks = result["checks"]
+        name_w = max((len(c["check"]) for c in checks), default=10)
+        check_rows = []
+        for c in checks:
+            icon = "✅" if c["status"] == "PASS" else "❌"
+            name_col = c["check"].ljust(name_w)
+            detail = c.get("detail") or c.get("result") or "—"
+            check_rows.append(f"  {name_col}  {icon} {c['status']:<6}  {detail}")
+
+        failed = sum(1 for c in checks if c["status"] != "PASS")
+        overall_icon = "✅" if result["all_passed"] else "❌"
+        overall = (
+            f"All {len(checks)} checks passed"
+            if result["all_passed"] else
+            f"{failed} of {len(checks)} checks failed"
+        )
+
+        files_block = ""
+        if context_path_str or notes_path_str:
+            files_block = "\n\nFiles written:"
+            if context_path_str:
+                hash_part = f"  (git: {context_hash})" if context_hash else ""
+                files_block += f"\n  {context_path_str}{hash_part}"
+            if notes_path_str:
+                hash_part = f"  (git: {notes_hash})" if notes_hash else ""
+                files_block += f"\n  {notes_path_str}{hash_part}"
+
+        pr_line = (
+            f"\n\nBranch `{_session_branch}` is ready. Say **raise a PR** with a description when ready."
         ) if _session_branch else ""
 
-        return report + pr_nudge
+        return (
+            f"Quality Check Results — {sandbox_name}\n"
+            f"Run ID: {result['run_id']}\n\n"
+            + "\n".join(check_rows)
+            + f"\n\n{overall_icon} {overall}"
+            + files_block
+            + pr_line
+        )
 
     except ValueError as e:
         return str(e)
@@ -622,17 +698,22 @@ def raise_pr(description: str) -> str:
             f"git remote add origin <url> && git push -u origin {_session_branch}"
         )
 
-    # Push branch
-    ok, push_output = _run_git("push", "-u", "origin", _session_branch, cwd=_repo_root)
-    if not ok:
-        return f"❌ Push failed: {push_output}"
-
     # Read MIGRATION_NOTES.md as PR body
     notes_path = Path(_repo_root) / "MIGRATION_NOTES.md"
     pr_body = notes_path.read_text() if notes_path.exists() else ""
 
     pr_title = f"[Migration] {description}"
     base_branch = _detect_base_branch(_repo_root) or "main"
+
+    # Collect changed files vs base branch for visibility
+    _, diff_out = _run_git("diff", "--name-only", base_branch, "HEAD", cwd=_repo_root)
+    diff_files = [f"  {f}" for f in diff_out.splitlines() if f.strip()]
+    files_block = "\n" + "\n".join(diff_files) if diff_files else "\n  (no file changes detected)"
+
+    # Push branch
+    ok, push_output = _run_git("push", "-u", "origin", _session_branch, cwd=_repo_root)
+    if not ok:
+        return f"❌ Push failed: {push_output}"
 
     # Try gh CLI first — creates the PR directly
     gh_check = subprocess.run(["gh", "--version"], capture_output=True)
@@ -651,7 +732,13 @@ def raise_pr(description: str) -> str:
         )
         if result.returncode == 0:
             pr_url = result.stdout.strip()
-            return f"✅ PR raised: {pr_url} — {pr_title}"
+            return (
+                f"✅ PR raised\n\n"
+                f"  Branch:  {_session_branch} → {base_branch}\n"
+                f"  Title:   {pr_title}\n"
+                f"  PR URL:  {pr_url}\n\n"
+                f"Files in this PR:{files_block}"
+            )
         # gh failed (e.g. not authenticated) — fall through to compare URL
         gh_error = result.stderr.strip()
     else:
@@ -666,14 +753,19 @@ def raise_pr(description: str) -> str:
             f"https://github.com/{repo_path}/compare/{_session_branch}"
             f"?expand=1&title={quote(pr_title)}"
         )
-        fallback_msg = f" (`gh` CLI unavailable{f': {gh_error}' if gh_error else ''} — open PR manually): {compare_url}"
+        open_pr_line = f"  Open PR:  {compare_url}"
+        gh_note = f"  Note:     gh CLI unavailable{f' — {gh_error}' if gh_error else ''}\n"
     else:
-        fallback_msg = f" Branch `{_session_branch}` pushed — open a PR from your GitHub repo."
+        open_pr_line = "  Open PR:  from your GitHub repo (no remote URL detected)"
+        gh_note = ""
 
     return (
-        f"✅ Branch `{_session_branch}` pushed. "
-        f"{pr_title}"
-        f"{fallback_msg}"
+        f"✅ Branch pushed — open PR manually\n\n"
+        f"  Branch:   {_session_branch} → {base_branch}\n"
+        f"  Title:    {pr_title}\n"
+        f"{open_pr_line}\n"
+        + (f"{gh_note}" if gh_note else "")
+        + f"\nFiles in this PR:{files_block}"
     )
 
 
