@@ -175,19 +175,20 @@ def start_migration(
     _repo_root = repo_root
 
     if tracked_changes:
-        stash_line = f"\n  Working dir:  ⚠️  {len(tracked_changes)} tracked change(s) stashed automatically"
+        working_dir_status = f"⚠️ {len(tracked_changes)} tracked change(s) stashed"
     elif untracked_files:
-        stash_line = f"\n  Working dir:  {len(untracked_files)} untracked file(s) present (not stashed)"
+        working_dir_status = f"{len(untracked_files)} untracked file(s) present (not stashed)"
     else:
-        stash_line = "\n  Working dir:  clean"
-    base_line = f"\n  Cut from:     {base_branch}" if base_branch else ""
+        working_dir_status = "clean"
+
+    base_part = f" | Cut from: {base_branch}" if base_branch else ""
     return (
-        f"✅ Migration branch created\n\n"
-        f"  Branch:       {branch_name}"
-        f"{base_line}"
-        f"\n  Repo root:    {repo_root}"
-        f"{stash_line}\n\n"
-        f"Next: call create_sandbox to clone the table you want to transform."
+        f"✅ Migration branch created"
+        f" | Branch: {branch_name}"
+        f"{base_part}"
+        f" | Repo root: {repo_root}"
+        f" | Working dir: {working_dir_status}"
+        f" | Next: call create_sandbox to clone the table you want to transform."
     )
 
 
@@ -305,13 +306,13 @@ def create_sandbox(table: str) -> str:
             f"{c['column_name']} ({c['data_type']})" for c in record.schema_columns
         ) if record.schema_columns else "—"
         return (
-            f"✅ Sandbox created\n\n"
-            f"  Production table:  {schema}.{table}\n"
-            f"  Sandbox table:     {schema}.{record.sandbox_name}\n"
-            f"  Rows copied:       {row_count:,}\n"
-            f"  Columns:           {col_summary}\n\n"
-            f"{identity_msg}\n\n"
-            f"Next: call apply_transformation(sandbox_name='{record.sandbox_name}', sql=...)"
+            f"✅ Sandbox created"
+            f" | Production: {schema}.{table}"
+            f" | Sandbox: {schema}.{record.sandbox_name}"
+            f" | Rows copied: {row_count:,}"
+            f" | Columns: {col_summary}"
+            f" | {identity_msg}"
+            f" | Next: call apply_transformation(sandbox_name='{record.sandbox_name}', sql=...)"
         )
     except RuntimeError as e:
         return str(e)
@@ -388,20 +389,19 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
             guard_msg = "🔒 Production guard verified — SQL targets sandbox only, production tables untouched"
 
         n_applied = len(record.applied_sqls)
+        file_part = ""
         if migration_file_path:
-            file_lines = f"\n  File written:  {migration_file_path}"
+            file_part = f" | File: {migration_file_path}"
             if commit_hash:
-                file_lines += f"\n  Git commit:    {commit_hash} — \"{commit_msg}\""
-        else:
-            file_lines = ""
+                file_part += f" | Commit: {commit_hash} \"{commit_msg}\""
 
         return (
             f"✅ Transformation #{n_applied} applied to '{sandbox_name}'"
-            f"{file_lines}"
-            f"\n\n  SQL saved:\n    {sql_display}\n\n"
-            f"{guard_msg}\n\n"
-            f"Next: read quality_checks/ library, pick relevant checks, then call save_quality_checks.\n"
-            f"IMPORTANT: check SQL must use a 'status' column ('PASS'/'FAIL') or violation-row style (0 rows = PASS)."
+            f"{file_part}"
+            f" | SQL: {sql_display}"
+            f" | {guard_msg}"
+            f" | Next: read quality_checks/ library, pick relevant checks, then call save_quality_checks."
+            f" IMPORTANT: check SQL must use a 'status' column ('PASS'/'FAIL') or violation-row style (0 rows = PASS)."
         )
     except production_guard.ProductionWriteBlockedError as e:
         return str(e)
@@ -498,22 +498,19 @@ def save_quality_checks(sandbox_name: str, checks: list[dict]) -> str:
             checks_dir_str = str(checks_dir)
 
         n = len(checks)
-        check_lines = []
-        for i, c in enumerate(checks, 1):
-            name = c.get("name", "?")
-            desc = c.get("description", "—")
-            check_lines.append(f"    {i}. {name}.sql  —  {desc}")
-
-        dir_line = f"\n  Directory:   {checks_dir_str}" if checks_dir_str else ""
-        commit_line = f"\n  Git commit:  {qc_commit_hash} — \"{qc_commit_msg}\"" if qc_commit_hash else ""
+        check_parts = [
+            f"{c.get('name', '?')}.sql — {c.get('description', '—')}"
+            for c in checks
+        ]
+        dir_part = f" | Dir: {checks_dir_str}" if checks_dir_str else ""
+        commit_part = f" | Commit: {qc_commit_hash} \"{qc_commit_msg}\"" if qc_commit_hash else ""
 
         return (
             f"✅ {n} quality check{'s' if n != 1 else ''} saved for '{sandbox_name}'"
-            f"{dir_line}"
-            f"{commit_line}"
-            f"\n\n  Checks written:\n"
-            + "\n".join(check_lines)
-            + f"\n\nNext: call run_quality_checks(sandbox_name='{sandbox_name}')"
+            f"{dir_part}"
+            f"{commit_part}"
+            f" | Checks: {' · '.join(check_parts)}"
+            f" | Next: call run_quality_checks(sandbox_name='{sandbox_name}')"
         )
     except ValueError as e:
         return str(e)
@@ -624,15 +621,14 @@ def run_quality_checks(sandbox_name: str) -> str:
             _, notes_hash = _commit_and_get_hash(notes_commit_msg, _repo_root)
             notes_path_str = str(notes_path)
 
-        # Build aligned check results table
+        # Build per-check summary parts
         checks = result["checks"]
-        name_w = max((len(c["check"]) for c in checks), default=10)
-        check_rows = []
+        check_parts = []
         for c in checks:
             icon = "✅" if c["status"] == "PASS" else "❌"
-            name_col = c["check"].ljust(name_w)
-            detail = c.get("detail") or c.get("result") or "—"
-            check_rows.append(f"  {name_col}  {icon} {c['status']:<6}  {detail}")
+            detail = c.get("detail") or c.get("result") or ""
+            detail_part = f" ({detail})" if detail and c["status"] != "PASS" else ""
+            check_parts.append(f"{c['check']}: {icon} {c['status']}{detail_part}")
 
         failed = sum(1 for c in checks if c["status"] != "PASS")
         overall_icon = "✅" if result["all_passed"] else "❌"
@@ -642,27 +638,26 @@ def run_quality_checks(sandbox_name: str) -> str:
             f"{failed} of {len(checks)} checks failed"
         )
 
-        files_block = ""
-        if context_path_str or notes_path_str:
-            files_block = "\n\nFiles written:"
-            if context_path_str:
-                hash_part = f"  (git: {context_hash})" if context_hash else ""
-                files_block += f"\n  {context_path_str}{hash_part}"
-            if notes_path_str:
-                hash_part = f"  (git: {notes_hash})" if notes_hash else ""
-                files_block += f"\n  {notes_path_str}{hash_part}"
+        file_entries = []
+        if context_path_str:
+            hash_part = f" ({context_hash})" if context_hash else ""
+            file_entries.append(f"{context_path_str}{hash_part}")
+        if notes_path_str:
+            hash_part = f" ({notes_hash})" if notes_hash else ""
+            file_entries.append(f"{notes_path_str}{hash_part}")
+        files_part = f" | Files written: {' · '.join(file_entries)}" if file_entries else ""
 
-        pr_line = (
-            f"\n\nBranch `{_session_branch}` is ready. Say **raise a PR** with a description when ready."
+        pr_part = (
+            f" | Branch `{_session_branch}` is ready — say raise a PR with a description when ready."
         ) if _session_branch else ""
 
         return (
-            f"Quality Check Results — {sandbox_name}\n"
-            f"Run ID: {result['run_id']}\n\n"
-            + "\n".join(check_rows)
-            + f"\n\n{overall_icon} {overall}"
-            + files_block
-            + pr_line
+            f"Quality Check Results — {sandbox_name}"
+            f" | Run: {result['run_id']}"
+            f" | {' · '.join(check_parts)}"
+            f" | {overall_icon} {overall}"
+            f"{files_part}"
+            f"{pr_part}"
         )
 
     except ValueError as e:
@@ -707,8 +702,8 @@ def raise_pr(description: str) -> str:
 
     # Collect changed files vs base branch for visibility
     _, diff_out = _run_git("diff", "--name-only", base_branch, "HEAD", cwd=_repo_root)
-    diff_files = [f"  {f}" for f in diff_out.splitlines() if f.strip()]
-    files_block = "\n" + "\n".join(diff_files) if diff_files else "\n  (no file changes detected)"
+    diff_files = [f for f in diff_out.splitlines() if f.strip()]
+    files_part = " · ".join(diff_files) if diff_files else "(no file changes detected)"
 
     # Push branch
     ok, push_output = _run_git("push", "-u", "origin", _session_branch, cwd=_repo_root)
@@ -733,11 +728,11 @@ def raise_pr(description: str) -> str:
         if result.returncode == 0:
             pr_url = result.stdout.strip()
             return (
-                f"✅ PR raised\n\n"
-                f"  Branch:  {_session_branch} → {base_branch}\n"
-                f"  Title:   {pr_title}\n"
-                f"  PR URL:  {pr_url}\n\n"
-                f"Files in this PR:{files_block}"
+                f"✅ PR raised"
+                f" | Branch: {_session_branch} → {base_branch}"
+                f" | {pr_title}"
+                f" | PR URL: {pr_url}"
+                f" | Files in PR: {files_part}"
             )
         # gh failed (e.g. not authenticated) — fall through to compare URL
         gh_error = result.stderr.strip()
@@ -753,19 +748,19 @@ def raise_pr(description: str) -> str:
             f"https://github.com/{repo_path}/compare/{_session_branch}"
             f"?expand=1&title={quote(pr_title)}"
         )
-        open_pr_line = f"  Open PR:  {compare_url}"
-        gh_note = f"  Note:     gh CLI unavailable{f' — {gh_error}' if gh_error else ''}\n"
+        gh_note_part = f" | Note: gh CLI unavailable{f' — {gh_error}' if gh_error else ''}"
+        open_pr_part = f" | Open PR: {compare_url}"
     else:
-        open_pr_line = "  Open PR:  from your GitHub repo (no remote URL detected)"
-        gh_note = ""
+        gh_note_part = ""
+        open_pr_part = " | Open PR: from your GitHub repo (no remote URL detected)"
 
     return (
-        f"✅ Branch pushed — open PR manually\n\n"
-        f"  Branch:   {_session_branch} → {base_branch}\n"
-        f"  Title:    {pr_title}\n"
-        f"{open_pr_line}\n"
-        + (f"{gh_note}" if gh_note else "")
-        + f"\nFiles in this PR:{files_block}"
+        f"✅ Branch pushed — open PR manually"
+        f" | Branch: {_session_branch} → {base_branch}"
+        f" | {pr_title}"
+        f"{open_pr_part}"
+        f"{gh_note_part}"
+        f" | Files in PR: {files_part}"
     )
 
 
