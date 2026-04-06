@@ -401,10 +401,14 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
 
 @mcp.tool()
 def preview_transformation(sql: str) -> str:
-    """Preview what a SQL query returns against the sandbox table, without persisting any
-    changes. Use to let the engineer verify results before running quality checks."""
+    """Preview what a SELECT query returns against the sandbox table, without persisting any
+    changes. Only valid for SELECT statements — use this to let the engineer inspect sandbox
+    data before or after a transformation. Do NOT call this for DDL (ALTER, CREATE, DROP,
+    TRUNCATE) — DDL executes immediately and cannot be previewed; call apply_transformation
+    directly instead."""
     try:
         settings = get_settings()
+        production_guard.check_not_ddl(sql)
         production_guard.check_sql(sql, settings.sandbox_prefix, settings.audit_table)
         client = get_client()
         rows = client.execute_query(sql)

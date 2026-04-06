@@ -118,6 +118,32 @@ def check_sql(sql: str, sandbox_prefix: str, audit_table: str) -> None:
                 )
 
 
+_DDL_TYPES = (exp.Alter, exp.Drop, exp.Create, exp.TruncateTable)
+
+
+def check_not_ddl(sql: str) -> None:
+    """Raise ProductionWriteBlockedError if the SQL contains DDL statements.
+
+    DDL (ALTER, DROP, CREATE, TRUNCATE) executes immediately and cannot be previewed
+    — there are no rows to show and the change fires the moment the statement runs.
+    Callers should direct the user to apply_transformation instead.
+    """
+    try:
+        statements = sqlglot.parse(sql, error_level=sqlglot.ErrorLevel.WARN)
+    except Exception:
+        return  # unparseable — let execute_query surface the error naturally
+
+    for statement in statements:
+        if statement is None:
+            continue
+        if isinstance(statement, _DDL_TYPES):
+            stmt_type = type(statement).__name__.upper()
+            raise ProductionWriteBlockedError(
+                f"⚠️  DDL statements ({stmt_type}) execute immediately and cannot be previewed. "
+                f"Call apply_transformation directly to apply this change to the sandbox."
+            )
+
+
 def check_select_only(sql: str) -> None:
     """
     Stricter check for query_table: only SELECT (or WITH…SELECT) is allowed.
