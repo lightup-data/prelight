@@ -90,24 +90,19 @@ def _fmt_rows(rows: list[dict], limit: int = 50) -> str:
 
 
 def _fmt_quality_report(result: dict) -> str:
-    lines = [
-        f"Quality Check Report",
-        f"Run ID:      {result['run_id']}",
-        f"Sandbox:     {result['sandbox_name']}",
-        f"Source:      {result['source_table']}",
-        "",
-    ]
+    check_parts = []
     for check in result["checks"]:
         icon = "✅" if check["status"] == "PASS" else "❌"
-        lines.append(f"{icon} {check['check']}: {check['status']}")
-        lines.append(f"   Result:   {check['result']}")
-        lines.append(f"   Expected: {check['expected']}")
+        part = f"{icon} {check['check']}: {check['status']} (result: {check['result']}, expected: {check['expected']})"
         if check.get("detail"):
-            lines.append(f"   Detail:   {check['detail']}")
-        lines.append("")
+            part += f" [detail: {check['detail']}]"
+        check_parts.append(part)
     overall = "✅ ALL CHECKS PASSED" if result["all_passed"] else "❌ SOME CHECKS FAILED"
-    lines.append(overall)
-    return "\n".join(lines)
+    return (
+        f"Quality Check Report | Run ID: {result['run_id']} | Sandbox: {result['sandbox_name']} | Source: {result['source_table']} | "
+        + " | ".join(check_parts)
+        + f" | {overall}"
+    )
 
 
 # ── Tool 1: start_migration ───────────────────────────────────────────────────
@@ -152,7 +147,7 @@ def start_migration(
     ok, repo_root = _run_git("rev-parse", "--show-toplevel", cwd=working_directory)
     if not ok:
         return (
-            f"⚠️  `{working_directory}` is not a git repo.\n\n"
+            f"⚠️  `{working_directory}` is not a git repo. "
             f"Prelight writes migration files directly into your repo as you work. "
             f"Should I run `git init` here to set one up? "
             f"Say **yes** and I'll call start_migration again with init_git=True."
@@ -163,7 +158,7 @@ def start_migration(
     stash_msg = ""
     if status_out:
         _run_git("stash", cwd=repo_root)
-        stash_msg = "\n⚠️  Stashed your uncommitted changes before creating the migration branch."
+        stash_msg = " ⚠️  Stashed your uncommitted changes before creating the migration branch."
 
     # Always cut the new branch from the base branch so each migration is independent
     base_branch = _detect_base_branch(repo_root)
@@ -182,8 +177,7 @@ def start_migration(
 
     return (
         f"✅ Migration started on branch `{branch_name}`."
-        f"{stash_msg}\n\n"
-        f"Ready — call create_sandbox to begin."
+        f"{stash_msg} Ready — call create_sandbox to begin."
     )
 
 
@@ -208,8 +202,8 @@ def list_tables() -> str:
         ]
         if not prod_tables:
             return f"No production tables found in schema '{schema}'."
-        table_list = "\n".join(f"  • {t}" for t in sorted(prod_tables))
-        return f"Production tables in '{schema}':\n{table_list}"
+        table_list = ", ".join(sorted(prod_tables))
+        return f"Production tables in '{schema}': {table_list}"
     except RuntimeError as e:
         return str(e)
     except Exception as e:
@@ -232,14 +226,10 @@ def describe_table(table: str) -> str:
         if not schema_cols:
             return f"❌ Table '{table}' not found or has no columns."
 
-        col_lines = "\n".join(
-            f"  {c['column_name']:<30} {c['data_type']}" for c in schema_cols
+        col_lines = ", ".join(
+            f"{c['column_name']} ({c['data_type']})" for c in schema_cols
         )
-        return (
-            f"Table: {table}\n"
-            f"Row count: {row_count:,}\n\n"
-            f"Columns:\n{col_lines}"
-        )
+        return f"Table: {table} | Row count: {row_count:,} | Columns: {col_lines}"
     except RuntimeError as e:
         return str(e)
     except Exception as e:
@@ -258,7 +248,7 @@ def query_table(sql: str) -> str:
         client = get_client()
         rows = client.execute_query(sql)
         result = _fmt_rows(rows, limit=50)
-        suffix = f"\n\n(showing first 50 rows)" if len(rows) >= 50 else ""
+        suffix = " (showing first 50 rows)" if len(rows) >= 50 else ""
         return result + suffix
     except production_guard.ProductionWriteBlockedError as e:
         return str(e)
@@ -302,8 +292,7 @@ def create_sandbox(table: str) -> str:
             )
         return (
             f"✅ Sandbox created: {record.sandbox_name} "
-            f"(copied from {table}, {row_count:,} rows)\n"
-            f"{identity_msg}"
+            f"(copied from {table}, {row_count:,} rows) {identity_msg}"
         )
     except RuntimeError as e:
         return str(e)
@@ -375,13 +364,13 @@ def apply_transformation(sandbox_name: str, sql: str) -> str:
                 "🔒 Production guard verified — SQL targets sandbox only, production tables untouched"
             )
         return (
-            f"✅ Transformation applied to sandbox '{sandbox_name}'.\n"
-            f"{guard_msg}\n"
-            f"SQL logged for PR generation.\n\n"
+            f"✅ Transformation applied to sandbox '{sandbox_name}'. "
+            f"{guard_msg}. "
+            f"SQL logged for PR generation. "
             f"Next: read the quality_checks/ library folder, examine this transformation and the "
             f"table schema, pick the relevant checks, generate the comparison SQLs with real table "
             f"and column names filled in, then call save_quality_checks. After that the engineer "
-            f"can call run_quality_checks.\n\n"
+            f"can call run_quality_checks. "
             f"IMPORTANT: every check SQL must use either (a) a 'status' column returning 'PASS'/'FAIL' "
             f"(as all library templates do), or (b) violation-row style returning 0 rows=PASS. "
             f"Bare COUNT(*) queries with no status column always fail evaluation."
@@ -413,7 +402,7 @@ def preview_transformation(sql: str) -> str:
         client = get_client()
         rows = client.execute_query(sql)
         result = _fmt_rows(rows, limit=50)
-        suffix = "\n\n(showing first 50 rows)" if len(rows) >= 50 else ""
+        suffix = " (showing first 50 rows)" if len(rows) >= 50 else ""
         return result + suffix
     except production_guard.ProductionWriteBlockedError as e:
         return str(e)
@@ -480,9 +469,9 @@ def save_quality_checks(sandbox_name: str, checks: list[dict]) -> str:
 
         names = [c.get("name", "?") for c in checks]
         return (
-            f"✅ {len(checks)} quality check(s) saved for sandbox '{sandbox_name}':\n"
-            + "\n".join(f"  • {n}" for n in names)
-            + "\n\nCall run_quality_checks to execute them."
+            f"✅ {len(checks)} quality check(s) saved for sandbox '{sandbox_name}': "
+            + ", ".join(names)
+            + ". Call run_quality_checks to execute them."
         )
     except ValueError as e:
         return str(e)
@@ -594,7 +583,7 @@ def run_quality_checks(sandbox_name: str) -> str:
 
         report = _fmt_quality_report(result)
         pr_nudge = (
-            f"\n\nChanges committed to branch `{_session_branch}`. "
+            f" Changes committed to branch `{_session_branch}`. "
             f"Say **raise a PR** with a short description when you're ready to push."
         ) if _session_branch else ""
 
@@ -628,10 +617,9 @@ def raise_pr(description: str) -> str:
     ok, remote_url = _run_git("remote", "get-url", "origin", cwd=_repo_root)
     if not ok or not remote_url:
         return (
-            f"Your changes are committed to branch `{_session_branch}`.\n\n"
-            f"This repo has no remote configured — add one and push when ready:\n"
-            f"  git remote add origin <url>\n"
-            f"  git push -u origin {_session_branch}"
+            f"Your changes are committed to branch `{_session_branch}`. "
+            f"This repo has no remote configured — add one and push when ready: "
+            f"git remote add origin <url> && git push -u origin {_session_branch}"
         )
 
     # Push branch
@@ -663,10 +651,7 @@ def raise_pr(description: str) -> str:
         )
         if result.returncode == 0:
             pr_url = result.stdout.strip()
-            return (
-                f"✅ PR raised: {pr_url}\n\n"
-                f"**{pr_title}**"
-            )
+            return f"✅ PR raised: {pr_url} — {pr_title}"
         # gh failed (e.g. not authenticated) — fall through to compare URL
         gh_error = result.stderr.strip()
     else:
@@ -681,13 +666,13 @@ def raise_pr(description: str) -> str:
             f"https://github.com/{repo_path}/compare/{_session_branch}"
             f"?expand=1&title={quote(pr_title)}"
         )
-        fallback_msg = f"\n\n(`gh` CLI unavailable{f': {gh_error}' if gh_error else ''} — open PR manually)\n{compare_url}"
+        fallback_msg = f" (`gh` CLI unavailable{f': {gh_error}' if gh_error else ''} — open PR manually): {compare_url}"
     else:
-        fallback_msg = f"\n\nBranch `{_session_branch}` pushed — open a PR from your GitHub repo."
+        fallback_msg = f" Branch `{_session_branch}` pushed — open a PR from your GitHub repo."
 
     return (
-        f"✅ Branch `{_session_branch}` pushed.\n\n"
-        f"**{pr_title}**"
+        f"✅ Branch `{_session_branch}` pushed. "
+        f"{pr_title}"
         f"{fallback_msg}"
     )
 
@@ -752,17 +737,14 @@ def configure_duckdb(
         try:
             from prelight.cli.setup_demo import run_setup_demo_core
             demo_result = run_setup_demo_core()
-            demo_msg = f"\n\nDemo data loaded:\n{demo_result}"
+            demo_msg = f" Demo data loaded: {demo_result}"
         except Exception as e:
-            demo_msg = f"\n\n⚠️  Could not load demo data: {e}"
+            demo_msg = f" ⚠️  Could not load demo data: {e}"
 
     return (
-        f"✅ Switched to DuckDB backend.\n"
-        f"   File:   {resolved_path}\n"
-        f"   Schema: {schema}\n"
-        f"   Config: {config_file}"
-        f"{demo_msg}\n\n"
-        f"You can now say: List my tables"
+        f"✅ Switched to DuckDB backend. "
+        f"File: {resolved_path} | Schema: {schema} | Config: {config_file}."
+        f"{demo_msg} You can now say: List my tables"
     )
 
 
@@ -815,9 +797,9 @@ def configure_databricks(
 
     if not use_dual and not use_single:
         return (
-            "❌ No Databricks token provided. Please supply either:\n"
-            "  • token — a single PAT with read+write access, or\n"
-            "  • prod_token + sandbox_token — two separate PATs (recommended)"
+            "❌ No Databricks token provided. Please supply either: "
+            "token (single PAT with read+write access) or "
+            "prod_token + sandbox_token (two separate PATs, recommended)."
         )
 
     config_file = apply_databricks(
@@ -835,12 +817,9 @@ def configure_databricks(
 
     mode = "dual-token (recommended)" if use_dual else "single-token"
     return (
-        f"✅ Switched to Databricks backend ({mode} mode).\n"
-        f"   Host:   {host}\n"
-        f"   Schema: {schema}\n"
-        f"   Config: {config_file}\n\n"
-        f"You can now say: List my tables\n"
-        f"Or run demo setup: setup_demo"
+        f"✅ Switched to Databricks backend ({mode} mode). "
+        f"Host: {host} | Schema: {schema} | Config: {config_file}. "
+        f"You can now say: List my tables. Or run demo setup: setup_demo"
     )
 
 

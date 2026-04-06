@@ -39,45 +39,32 @@ def _run_databricks_setup(settings) -> str:
     raw_sql = sql_path.read_text(encoding="utf-8")
     statements = _split_statements(raw_sql)
 
-    lines = [f"Setting up demo data in {settings.databricks.host} (schema: {schema})...\n"]
     failed = 0
-    for i, stmt in enumerate(statements, 1):
-        label = stmt.splitlines()[0][:80]
+    for stmt in statements:
         try:
             execute_statement(stmt)
-            lines.append(f"  [{i}/{len(statements)}] ✅  {label}")
-        except Exception as e:
-            lines.append(f"  [{i}/{len(statements)}] ❌  {label}")
-            lines.append(f"       Error: {e}")
+        except Exception:
             failed += 1
 
-    lines.append("")
     if failed:
-        lines.append(f"⚠️  {failed} statement(s) failed. Check errors above.")
-    else:
-        try:
-            rows = execute_query(
-                f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
-                f"UNION ALL "
-                f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
-            )
-            lines.append("✅ Demo data setup complete!\n")
-            lines.append("  Table       Rows")
-            lines.append("  ──────────  ────")
-            for r in rows:
-                lines.append(f"  {r['t']:<10}  {r['n']}")
-            lines.append("\nYou can now say: List my tables")
-        except Exception:
-            lines.append("✅ Demo data setup complete!")
+        return f"⚠️ Demo setup: {failed} of {len(statements)} statement(s) failed."
 
-    return "\n".join(lines)
+    try:
+        rows = execute_query(
+            f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
+            f"UNION ALL "
+            f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
+        )
+        counts = ", ".join(f"{r['t']} ({r['n']} rows)" for r in rows)
+        return f"✅ Demo data ready in {schema}: {counts}. Say: List my tables"
+    except Exception:
+        return f"✅ Demo data setup complete in {schema}. Say: List my tables"
 
 
 def _run_duckdb_setup(settings) -> str:
     from prelight.core.clients.duckdb_client import execute_statement, execute_query
 
     schema = settings.db_schema
-    db_path = settings.duckdb.path or ":memory:"
     display_path = settings.duckdb.path or "(in-memory)"
 
     sql_path = Path(__file__).parent.parent.parent / "setup" / "duckdb" / "demo_data.sql"
@@ -92,38 +79,26 @@ def _run_duckdb_setup(settings) -> str:
 
     statements = _split_statements(raw_sql)
 
-    lines = [f"Setting up demo data in DuckDB (path: {display_path}, schema: {schema})...\n"]
     failed = 0
-    for i, stmt in enumerate(statements, 1):
-        label = stmt.splitlines()[0][:80]
+    for stmt in statements:
         try:
             execute_statement(stmt)
-            lines.append(f"  [{i}/{len(statements)}] ✅  {label}")
-        except Exception as e:
-            lines.append(f"  [{i}/{len(statements)}] ❌  {label}")
-            lines.append(f"       Error: {e}")
+        except Exception:
             failed += 1
 
-    lines.append("")
     if failed:
-        lines.append(f"⚠️  {failed} statement(s) failed. Check errors above.")
-    else:
-        try:
-            rows = execute_query(
-                f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
-                f"UNION ALL "
-                f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
-            )
-            lines.append("✅ Demo data setup complete!\n")
-            lines.append("  Table       Rows")
-            lines.append("  ──────────  ────")
-            for r in rows:
-                lines.append(f"  {r['t']:<10}  {r['n']}")
-            lines.append("\nYou can now say: List my tables")
-        except Exception:
-            lines.append("✅ Demo data setup complete!")
+        return f"⚠️ Demo setup: {failed} of {len(statements)} statement(s) failed."
 
-    return "\n".join(lines)
+    try:
+        rows = execute_query(
+            f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
+            f"UNION ALL "
+            f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
+        )
+        counts = ", ".join(f"{r['t']} ({r['n']} rows)" for r in rows)
+        return f"✅ Demo data ready in {schema} ({display_path}): {counts}. Say: List my tables"
+    except Exception:
+        return f"✅ Demo data setup complete in {schema}. Say: List my tables"
 
 
 def _split_statements(raw_sql: str) -> list[str]:
