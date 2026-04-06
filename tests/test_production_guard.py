@@ -14,6 +14,7 @@ import pytest
 
 from prelight.core.production_guard import (
     ProductionWriteBlockedError,
+    check_not_ddl,
     check_select_only,
     check_sql,
 )
@@ -173,6 +174,43 @@ class TestCheckSqlFailsClosed:
         # sqlglot parses 'GARBLE THINGS' as an expression, not a SELECT
         with pytest.raises(ProductionWriteBlockedError, match="Only SELECT"):
             check_select_only("GARBLE THINGS")
+
+
+# ── check_not_ddl ───────────────────────────────────────────────────────────
+
+
+class TestCheckNotDdl:
+    """DDL statements must be rejected; SELECT and DML must pass through."""
+
+    def test_alter_blocked(self):
+        with pytest.raises(ProductionWriteBlockedError, match="ALTER"):
+            check_not_ddl("ALTER TABLE sbx_orders ADD COLUMN region VARCHAR")
+
+    def test_drop_blocked(self):
+        with pytest.raises(ProductionWriteBlockedError, match="DROP"):
+            check_not_ddl("DROP TABLE sbx_orders")
+
+    def test_create_blocked(self):
+        with pytest.raises(ProductionWriteBlockedError, match="CREATE"):
+            check_not_ddl("CREATE TABLE sbx_orders AS SELECT 1")
+
+    def test_truncate_blocked(self):
+        with pytest.raises(ProductionWriteBlockedError, match="TRUNCATE"):
+            check_not_ddl("TRUNCATE TABLE sbx_orders")
+
+    def test_select_allowed(self):
+        check_not_ddl("SELECT * FROM sbx_orders LIMIT 5")
+
+    def test_update_allowed(self):
+        check_not_ddl("UPDATE sbx_orders SET region = 'EMEA'")
+
+    def test_unparseable_allowed_through(self):
+        """Unparseable SQL should not raise — let execute_query surface the error."""
+        import sqlglot as _sqlglot
+        from unittest.mock import patch
+
+        with patch.object(_sqlglot, "parse", side_effect=Exception("parse failure")):
+            check_not_ddl("anything")  # must not raise
 
 
 # ── check_select_only ───────────────────────────────────────────────────────
