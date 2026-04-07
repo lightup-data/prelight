@@ -920,15 +920,100 @@ def configure_databricks(
     )
 
 
-# ── Tool 13: setup_demo ───────────────────────────────────────────────────────
+# ── Tool 13: ingest_csv ───────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def ingest_csv(table_name: str, url: str) -> str:
+    """Load a CSV from a public URL or local file path into a new production table.
+
+    ⚠️  IMPORTANT — always use this tool to load external data. NEVER use bash commands,
+    Python scripts, or the duckdb CLI to load data into prelight. The prelight server holds
+    an exclusive lock on the DuckDB file; any external process will fail with a lock error.
+    This tool routes the load through the existing server connection, which is the only
+    correct approach.
+
+    Supported sources (DuckDB backend):
+      - https:// or http:// URLs (e.g. raw GitHub CSVs, public dataset hosts)
+      - Absolute local file paths (e.g. /Users/me/data/file.csv)
+
+    table_name: name for the new table created in the configured schema. Must not already exist.
+    url: https:// URL or absolute local file path to a .csv or .tsv file.
+    """
+    try:
+        settings = get_settings()
+        client = get_client()
+
+        if settings.backend != "duckdb":
+            return (
+                "❌ ingest_csv only supports DuckDB. "
+                "For Databricks, upload the file to a Databricks volume and use COPY INTO."
+            )
+
+        # Validate table name (prevents SQL injection)
+        table_name = sql_utils.validate_identifier(table_name, "table")
+        schema = settings.db_schema
+        full_table = f"{schema}.{table_name}"
+
+        # Validate URL — only allow safe characters to prevent SQL injection
+        import re as _re
+        if not _re.match(r'^(https?://[^\s\'";<>]+|/[^\s\'";<>]+)$', url):
+            return (
+                "❌ Invalid source. Provide a https:// URL or an absolute file path "
+                "(no quotes, semicolons, or shell metacharacters)."
+            )
+
+        # Block overwriting an existing table
+        if client.table_exists(table_name):
+            return (
+                f"❌ Table '{full_table}' already exists. "
+                "Choose a different table_name or drop the existing table first."
+            )
+
+        # Install httpfs extension for remote URLs (no-op if already loaded)
+        if url.startswith("http://") or url.startswith("https://"):
+            try:
+                client.execute_statement("INSTALL httpfs")
+                client.execute_statement("LOAD httpfs")
+            except Exception:
+                pass  # already installed/loaded — safe to ignore
+
+        client.execute_statement(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+        client.execute_statement(
+            f"CREATE TABLE {full_table} AS SELECT * FROM read_csv_auto('{url}')"
+        )
+
+        row_count = client.get_row_count(table_name)
+        schema_cols = client.get_table_schema(table_name)
+        col_summary = " · ".join(
+            f"{c['column_name']} ({c['data_type']})" for c in schema_cols
+        )
+        return (
+            f"✅ Table ingested"
+            f" | Table: {full_table}"
+            f" | Source: {url}"
+            f" | Rows loaded: {row_count:,}"
+            f" | Columns: {col_summary}"
+            f" | Next: call list_tables to confirm or create_sandbox to start transforming."
+        )
+    except ValueError as e:
+        return str(e)
+    except RuntimeError as e:
+        return str(e)
+    except Exception as e:
+        return f"❌ ingest_csv failed: {e}"
+
+
+# ── Tool 14: setup_demo ───────────────────────────────────────────────────────
 
 
 @mcp.tool()
 def setup_demo() -> str:
-    """Create the demo schema and tables in the configured database backend.
+    """Create the demo schema and tables (orders + customers) in the configured backend.
     For Databricks: runs setup/databricks/demo_data.sql.
     For DuckDB: runs setup/duckdb/demo_data.sql directly via the DuckDB connection.
-    Safe to run multiple times — drops and recreates tables each time for a clean state."""
+    Safe to run multiple times — drops and recreates tables each time for a clean state.
+    To load your own data from a public URL or file, use ingest_csv instead."""
     try:
         from prelight.cli.setup_demo import run_setup_demo_core
         return run_setup_demo_core()
