@@ -197,8 +197,10 @@ def start_migration(
 
 @mcp.tool()
 def list_tables() -> str:
-    """List all production tables in the configured schema. Excludes sandbox tables (sbx_ prefix)
-    and the audit table. Use this to show the engineer what tables are available."""
+    """List all production tables in the configured schema with their row counts and columns.
+    Excludes sandbox tables (sbx_ prefix) and the audit table. Use this whenever the engineer
+    asks to see, list, or show tables — this returns full metadata in a single call so you
+    never need to call describe_table just to get an overview."""
     try:
         settings = get_settings()
         client = get_client()
@@ -207,14 +209,22 @@ def list_tables() -> str:
         audit = settings.audit_table
 
         table_names = client.list_table_names(schema)
-        prod_tables = [
+        prod_tables = sorted(
             t for t in table_names
             if not t.startswith(prefix) and t != audit and t
-        ]
+        )
         if not prod_tables:
             return f"No production tables found in schema '{schema}'."
-        table_list = ", ".join(sorted(prod_tables))
-        return f"Production tables in '{schema}': {table_list}"
+
+        metadata = client.list_tables_with_metadata(schema, prod_tables)
+        table_parts = []
+        for entry in metadata:
+            col_lines = " · ".join(
+                f"{c['column_name']} ({c['data_type']})" for c in entry["columns"]
+            )
+            table_parts.append(f"{entry['table_name']}: {entry['row_count']:,} rows — {col_lines}")
+
+        return f"Schema: {schema} | {len(prod_tables)} table(s) | " + " | ".join(table_parts)
     except RuntimeError as e:
         return str(e)
     except Exception as e:

@@ -4,14 +4,15 @@ Database client factory and config-switching utilities.
 get_client() returns the active backend module (databricks_client or duckdb_client)
 based on the configured backend in config.yaml. Both modules expose the same interface:
 
-    execute_query(sql)                     -> list[dict]
-    execute_statement(sql)                 -> None
-    get_table_schema(table)                -> list[dict]
-    get_row_count(table)                   -> int
-    list_table_names(schema)               -> list[str]
-    create_sandbox_table(src, dst)         -> None
-    table_exists(table)                    -> bool
-    reset_connection()                     -> None
+    execute_query(sql)                              -> list[dict]
+    execute_statement(sql)                          -> None
+    get_table_schema(table)                         -> list[dict]
+    get_row_count(table)                            -> int
+    list_table_names(schema)                        -> list[str]
+    list_tables_with_metadata(schema, table_names)  -> list[dict]  # 2 DB calls for N tables
+    create_sandbox_table(src, dst)                  -> None
+    table_exists(table)                             -> bool
+    reset_connection()                              -> None
 
 reset_all() resets both the settings cache and all database connections.
 This must be called after programmatically updating config.yaml so that the
