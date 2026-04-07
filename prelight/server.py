@@ -216,17 +216,13 @@ def list_tables() -> str:
         if not prod_tables:
             return f"No production tables found in schema '{schema}'."
 
+        metadata = client.list_tables_with_metadata(schema, prod_tables)
         table_parts = []
-        for table in prod_tables:
-            try:
-                schema_cols = client.get_table_schema(table)
-                row_count = client.get_row_count(table)
-                col_lines = " · ".join(
-                    f"{c['column_name']} ({c['data_type']})" for c in schema_cols
-                )
-                table_parts.append(f"{table}: {row_count:,} rows — {col_lines}")
-            except Exception as e:
-                table_parts.append(f"{table}: ❌ could not describe: {e}")
+        for entry in metadata:
+            col_lines = " · ".join(
+                f"{c['column_name']} ({c['data_type']})" for c in entry["columns"]
+            )
+            table_parts.append(f"{entry['table_name']}: {entry['row_count']:,} rows — {col_lines}")
 
         return f"Schema: {schema} | {len(prod_tables)} table(s) | " + " | ".join(table_parts)
     except RuntimeError as e:

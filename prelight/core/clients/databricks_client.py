@@ -143,6 +143,52 @@ def create_sandbox_table(source_table: str, sandbox_table: str) -> None:
     )
 
 
+def list_tables_with_metadata(schema: str, table_names: list[str]) -> list[dict]:
+    """Return schema + row count for every table in table_names in 2 DB calls.
+
+    Returns a list of dicts ordered by table name:
+        [{"table_name": str, "row_count": int, "columns": [{"column_name", "data_type"}]}]
+    """
+    if not table_names:
+        return []
+    schema = validate_identifier(schema, "schema")
+    for t in table_names:
+        validate_identifier(t, "table")
+
+    # Call 1: fetch all column metadata in one query
+    quoted = ", ".join(f"'{t}'" for t in table_names)
+    col_rows = execute_query(
+        f"SELECT table_name, column_name, data_type "
+        f"FROM information_schema.columns "
+        f"WHERE table_schema = '{schema}' AND table_name IN ({quoted}) "
+        f"ORDER BY table_name, ordinal_position"
+    )
+    columns_by_table: dict[str, list[dict]] = {t: [] for t in table_names}
+    for row in col_rows:
+        tname = row["table_name"]
+        if tname in columns_by_table:
+            columns_by_table[tname].append(
+                {"column_name": row["column_name"], "data_type": row["data_type"]}
+            )
+
+    # Call 2: fetch all row counts in one UNION ALL query
+    union_parts = [
+        f"SELECT '{t}' AS table_name, COUNT(*) AS row_count FROM {schema}.{t}"
+        for t in table_names
+    ]
+    count_rows = execute_query(" UNION ALL ".join(union_parts))
+    counts = {r["table_name"]: int(r["row_count"]) for r in count_rows}
+
+    return [
+        {
+            "table_name": t,
+            "row_count": counts.get(t, 0),
+            "columns": columns_by_table.get(t, []),
+        }
+        for t in sorted(table_names)
+    ]
+
+
 def table_exists(table: str) -> bool:
     settings = get_settings()
     schema = validate_identifier(settings.databricks.schema, "schema")
