@@ -25,6 +25,26 @@ Type: **List my tables using prelight**
 
 ---
 
+## Docker Install (Isolated Session)
+
+Runs Claude Code and Prelight together inside a container. Claude only sees Prelight — no other MCP servers, no access to the rest of your machine.
+
+Requires Docker.
+
+```bash
+curl -sL https://raw.githubusercontent.com/lightup-data/prelight/master/setup-docker.sh | bash
+```
+
+Then `cd` into your project and run:
+
+```bash
+prelight-session
+```
+
+Your existing Claude login, git config, and SSH keys are picked up automatically — nothing to reconfigure.
+
+---
+
 ## How It Works
 
 Every transformation follows the same 7-step flow. Claude runs all of it — you just describe what you want and approve the PR at the end.
