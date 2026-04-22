@@ -100,6 +100,44 @@ class DuckDBConfig(BaseModel):
         return v
 
 
+class PostgresConfig(BaseModel):
+    host: str
+    port: int = 5432
+    database: str
+    user: str
+    password: str
+    schema: str = "public"
+    ssl_mode: str = "prefer"
+    sandbox_prefix: str = "sbx_"
+    audit_table: str = "qg_quality_results"
+
+    @field_validator("host", "database", "user")
+    @classmethod
+    def must_be_nonempty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("must be non-empty")
+        return v
+
+
+class SnowflakeConfig(BaseModel):
+    account: str   # e.g. xy12345.us-east-1
+    user: str
+    password: str
+    warehouse: str
+    database: str
+    schema: str = "public"
+    role: str | None = None
+    sandbox_prefix: str = "sbx_"
+    audit_table: str = "qg_quality_results"
+
+    @field_validator("account", "user", "warehouse", "database")
+    @classmethod
+    def must_be_nonempty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("must be non-empty")
+        return v
+
+
 class QualityConfig(BaseModel):
     row_count_drift_pct: int = 5
 
@@ -107,35 +145,54 @@ class QualityConfig(BaseModel):
 class Settings(BaseModel):
     databricks: DatabricksConfig | None = None
     duckdb: DuckDBConfig | None = None
+    postgres: PostgresConfig | None = None
+    snowflake: SnowflakeConfig | None = None
     quality: QualityConfig = QualityConfig()
 
     @model_validator(mode="after")
     def check_exactly_one_backend(self) -> "Settings":
-        has_databricks = self.databricks is not None
-        has_duckdb = self.duckdb is not None
-        if not has_databricks and not has_duckdb:
+        active = [
+            name for name, val in [
+                ("databricks", self.databricks),
+                ("duckdb", self.duckdb),
+                ("postgres", self.postgres),
+                ("snowflake", self.snowflake),
+            ]
+            if val is not None
+        ]
+        if not active:
             raise ValueError(
                 "No database backend configured. "
-                "Add a 'databricks:' section (cloud warehouse) or a 'duckdb:' section "
-                "(local file) to config.yaml. See README.md for examples."
+                "Add a 'databricks:', 'duckdb:', 'postgres:', or 'snowflake:' section "
+                "to config.yaml. See README.md for examples."
             )
-        if has_databricks and has_duckdb:
+        if len(active) > 1:
             raise ValueError(
-                "Both 'databricks' and 'duckdb' sections are present in config.yaml. "
+                f"Multiple backends configured: {', '.join(active)}. "
                 "Configure exactly one backend."
             )
         return self
 
     @property
     def backend(self) -> str:
-        """Active backend: 'databricks' or 'duckdb'."""
-        return "duckdb" if self.duckdb is not None else "databricks"
+        """Active backend name."""
+        if self.duckdb is not None:
+            return "duckdb"
+        if self.postgres is not None:
+            return "postgres"
+        if self.snowflake is not None:
+            return "snowflake"
+        return "databricks"
 
     @property
     def db_schema(self) -> str:
         """Schema name for the active backend."""
         if self.duckdb is not None:
             return self.duckdb.schema
+        if self.postgres is not None:
+            return self.postgres.schema
+        if self.snowflake is not None:
+            return self.snowflake.schema
         return self.databricks.schema  # type: ignore[union-attr]
 
     @property
@@ -143,6 +200,10 @@ class Settings(BaseModel):
         """Sandbox table prefix for the active backend."""
         if self.duckdb is not None:
             return self.duckdb.sandbox_prefix
+        if self.postgres is not None:
+            return self.postgres.sandbox_prefix
+        if self.snowflake is not None:
+            return self.snowflake.sandbox_prefix
         return self.databricks.sandbox_prefix  # type: ignore[union-attr]
 
     @property
@@ -150,6 +211,10 @@ class Settings(BaseModel):
         """Audit table name for the active backend."""
         if self.duckdb is not None:
             return self.duckdb.audit_table
+        if self.postgres is not None:
+            return self.postgres.audit_table
+        if self.snowflake is not None:
+            return self.snowflake.audit_table
         return self.databricks.audit_table  # type: ignore[union-attr]
 
 
@@ -189,7 +254,7 @@ def get_settings() -> Settings:
 
     if not raw:
         raise RuntimeError(
-            "❌ config.yaml is empty. Add a 'databricks:' or 'duckdb:' section — see README.md."
+            "❌ config.yaml is empty. Add a 'databricks:', 'duckdb:', 'postgres:', or 'snowflake:' section — see README.md."
         )
 
     try:
