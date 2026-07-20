@@ -7,3 +7,9 @@ dist/
 .idea/
 *.duckdb
 uv.lock
+
+# Hugo
+public/
+resources/
+.hugo_build.lock
+node_modules/

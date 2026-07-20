@@ -1,0 +1,171 @@
+{{- $textColsMap := dict "narrow" 4 "normal" 5 "half" 6 "wide" 7 -}}
+{{- $textCols := index $textColsMap (.Params.hero_bg_text_cols | default "normal") | default 5 -}}
+<section class="bd-masthead" style="position: relative; background-color: var(--hero-bg-color);">{{ with .Params.hero_bg_image }}<img src="{{ . }}" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; z-index: var(--prelight-z-bg);"><div class="hero-bg-scrim{{ if $.Params.hero_bg_scrim_full }} hero-bg-scrim-full{{ end }}" aria-hidden="true"></div>{{ end }}
+  <div class="container" style="position: relative; z-index: var(--prelight-z-content);">
+    {{- $pageURL := .RelPermalink | strings.TrimRight "/" -}}
+    {{- $crumbs := slice -}}
+    {{- range site.Menus.main -}}
+      {{- $top := . -}}
+      {{- range .Children -}}
+        {{- $mid := . -}}
+        {{- if eq ($mid.URL | strings.TrimRight "/") $pageURL -}}
+          {{- $crumbs = slice $top -}}
+        {{- end -}}
+        {{- range .Children -}}
+          {{- if eq (.URL | strings.TrimRight "/") $pageURL -}}
+            {{- $crumbs = slice $top $mid -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{ if $crumbs }}
+    <nav aria-label="breadcrumb" style="padding-top: 1.25rem;">
+      <ol class="breadcrumb mb-0" style="font-size: 0.8125rem; background: none; padding: 0; --bs-breadcrumb-divider-color: var(--prelight-text-on-dark-60);">
+        <li class="breadcrumb-item"><a href="/" style="color: var(--prelight-text-on-dark-60); text-decoration: none;">Home</a></li>
+        {{ range $crumbs }}
+        <li class="breadcrumb-item"><a href="{{ .URL }}" style="color: var(--prelight-text-on-dark-60); text-decoration: none;">{{ .Name }}</a></li>
+        {{ end }}
+        <li class="breadcrumb-item active" style="color: var(--prelight-text-on-dark-75);" aria-current="page">{{ $.Title }}</li>
+      </ol>
+    </nav>
+    {{ end }}
+    {{ if or .Params.hero_image .Params.hero_bg_image .Params.hero_youtube_id }}
+    <div class="row align-items-center pt-4 pt-lg-5{{ if .Params.hero_product_id }} pb-4{{ else }} pb-5{{ end }}">
+      {{ with .Params.hero_partner_logo }}
+      <div class="col-12 d-flex align-items-center justify-content-center gap-3 mb-5" style="line-height: 1;">
+        <img src="/images/lightup-logo-dark.png" alt="Lightup" style="height: 2.5rem; object-fit: contain; display: block;">
+        <span style="font-size: 1.5rem; color: var(--prelight-border-gold); font-weight: 300;">+</span>
+        <img src="{{ . }}" alt="{{ $.Params.hero_partner_logo_alt | default "Partner" }}" style="height: {{ $.Params.hero_partner_logo_height | default "1.75rem" }}; object-fit: contain; display: block;">
+      </div>
+      {{ end }}
+      <div class="col-lg-{{ $textCols }} d-flex flex-column justify-content-center">
+        <h1 class="display-4 fw-bold mb-3">{{ .Title }}{{ with .Params.badge }} <span style="display: inline-block; vertical-align: text-top; font-size: var(--prelight-font-size-badge-sm); background: var(--prelight-accent-bg); color: var(--prelight-accent); border: 1px solid var(--prelight-accent-border); padding: var(--prelight-padding-badge); border-radius: var(--prelight-radius-pill); font-weight: var(--prelight-font-weight-badge); letter-spacing: var(--prelight-letter-spacing-badge); text-transform: uppercase;">{{ . }}</span>{{ end }}</h1>
+        {{ with .Params.subtitle }}<p class="lead fs-3 mb-2">{{ . }}</p>{{ end }}
+        {{ with .Params.subtext }}<p class="text-muted mb-3">{{ . }}</p>{{ end }}
+        {{- $ctaUrl := .Params.cta_url -}}
+        {{- $ctaText := .Params.cta_text -}}
+        {{- if eq .Params.cta_type "contact" -}}
+          {{- $ctaUrl = site.Params.contactUrl -}}
+          {{- $ctaText = site.Params.contactText -}}
+        {{- else if eq .Params.cta_type "get-started" -}}
+          {{- $ctaUrl = site.Params.getStartedUrl -}}
+          {{- $ctaText = site.Params.getStartedText -}}
+        {{- else if eq .Params.cta_type "book-demo" -}}
+          {{- $ctaUrl = site.Params.bookDemoUrl -}}
+          {{- $ctaText = site.Params.bookDemoText -}}
+        {{- else if eq .Params.cta_type "docs" -}}
+          {{- $ctaUrl = site.Params.docsUrl -}}
+          {{- $ctaText = site.Params.docsText -}}
+        {{- end -}}
+        {{- $githubUrl := "" -}}
+        {{- if .Params.hero_show_github -}}
+          {{- with index site.Data.products .Params.hero_product_id -}}
+            {{- $githubUrl = .github_url -}}
+          {{- end -}}
+        {{- end -}}
+        {{ if or $ctaUrl .Params.cta2_url $githubUrl }}
+        <div class="d-flex gap-3 mt-2 flex-wrap align-items-center">
+          {{ with $ctaUrl }}<a href="{{ . }}" class="btn btn-primary">{{ $ctaText }}</a>{{ end }}
+          {{ with $githubUrl }}<a href="{{ . }}" target="_blank" rel="noopener" class="btn d-inline-flex align-items-center gap-2" style="background: var(--prelight-fill-white); color: var(--prelight-fill-github); border: 1px solid var(--prelight-border-color);"><svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>{{ site.Data.ui.btn_github }}</a>{{ end }}
+          {{ with $.Params.cta2_url }}<a href="{{ . }}" class="btn btn-outline-secondary">{{ $.Params.cta2_text | default site.Data.ui.btn_learn_more }}</a>{{ end }}
+        </div>
+        {{ end }}
+      </div>
+      {{ if or .Params.hero_image .Params.hero_youtube_id }}
+      <div class="col-lg-7 d-flex align-items-center justify-content-center p-lg-0 pt-4 pt-lg-0">
+        {{ if .Params.hero_youtube_id }}
+        <div class="hero-youtube-wrap">
+          <div class="ratio ratio-16x9" style="border-radius: var(--prelight-radius-image); overflow: hidden; box-shadow: var(--prelight-shadow-card-image);">
+            <iframe src="https://www.youtube.com/embed/{{ .Params.hero_youtube_id }}" title="{{ .Title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        </div>
+        {{ else if and .Params.hero_image .Params.hero_video }}
+        <div style="position: relative; width: 100%; aspect-ratio: 5/3;">
+          <img src="{{ .Params.hero_image }}" alt="{{ .Params.hero_image_alt | default "" }}" onclick="heroLightboxOpenImage(this)" style="position: absolute; bottom: 0; right: 0; width: var(--prelight-size-hero-img-back); height: var(--prelight-size-hero-img-back); object-fit: cover; object-position: top left; border-radius: var(--prelight-radius-card-image); box-shadow: var(--prelight-shadow-card-image); z-index: var(--prelight-z-content); cursor: zoom-in;">
+          <video src="{{ .Params.hero_video }}" autoplay muted loop playsinline onloadedmetadata="this.playbackRate={{ .Params.hero_video_playback_rate | default 1 }}" onclick="heroLightboxOpenVideo(this)" style="position: absolute; top: 0; left: 0; width: var(--prelight-size-hero-video-front); height: var(--prelight-size-hero-video-front); object-fit: cover; object-position: top left; border-radius: var(--prelight-radius-card-image); box-shadow: var(--prelight-shadow-card-image); z-index: var(--prelight-z-video); opacity: var(--prelight-opacity-video); cursor: zoom-in;"></video>
+        </div>
+        {{ else }}
+        <img src="{{ .Params.hero_image }}" class="img-fluid" onclick="heroLightboxOpenImage(this)" style="{{ if .Params.hero_image_fill }}width: 100%; height: 100%; object-fit: cover;{{ else }}max-width: 100%; max-height: var(--prelight-height-hero-image); height: auto;{{ if not .Params.hero_image_no_border }} border: var(--prelight-border-hero-image-width) solid var(--prelight-border-hero-image);{{ end }}{{ end }} border-radius: var(--prelight-radius-image); cursor: zoom-in;" alt="{{ .Params.hero_image_alt | default "" }}">
+        {{ end }}
+      </div>
+      {{ end }}
+
+    </div>
+    {{ if .Params.hero_product_id }}{{ with index site.Data.products .Params.hero_product_id }}
+    {{ $cmd := .install_cmd }}
+    <div class="pb-4 hero-code-cta">
+      <pre class="position-relative rounded p-3 mb-0 pe-5 code-pre" style="background: var(--prelight-fill-code-cta); color: var(--prelight-text-code-cta);"><code style="color: inherit;">&gt; {{ $cmd }}</code><button onclick="navigator.clipboard.writeText('{{ $cmd }}').then(() => { this.textContent = '✓'; setTimeout(() => this.textContent = '⎘', 1500); })"
+          class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-2"
+          style="color: var(--prelight-accent); background: none; border: none; font-size: var(--prelight-font-size-copy-btn);"
+          title="{{ site.Data.ui.tooltip_copy }}">⎘</button></pre>
+    </div>
+    {{ end }}{{ end }}
+    {{ else }}
+    <div class="row justify-content-center">
+      <div class="col-lg-8 text-center d-flex flex-column align-items-center" style="padding: var(--prelight-section-padding-y) 0;">
+        <h1 class="display-4 fw-bold mb-3">{{ .Title }}</h1>
+        {{ with .Params.subtitle }}<p class="lead fs-3 mb-2">{{ . }}</p>{{ end }}
+        {{ with .Params.subtext }}<p class="text-muted mb-3">{{ . }}</p>{{ end }}
+        {{- $ctaUrl := .Params.cta_url -}}
+        {{- $ctaText := .Params.cta_text -}}
+        {{- if eq .Params.cta_type "contact" -}}
+          {{- $ctaUrl = site.Params.contactUrl -}}
+          {{- $ctaText = site.Params.contactText -}}
+        {{- else if eq .Params.cta_type "get-started" -}}
+          {{- $ctaUrl = site.Params.getStartedUrl -}}
+          {{- $ctaText = site.Params.getStartedText -}}
+        {{- else if eq .Params.cta_type "book-demo" -}}
+          {{- $ctaUrl = site.Params.bookDemoUrl -}}
+          {{- $ctaText = site.Params.bookDemoText -}}
+        {{- end -}}
+        {{ if or $ctaUrl .Params.cta2_url }}
+        <div class="d-flex gap-3">
+          {{ with $ctaUrl }}<a href="{{ . }}" class="btn btn-primary">{{ $ctaText | default site.Data.ui.btn_get_started }}</a>{{ end }}
+          {{ with $.Params.cta2_url }}<a href="{{ . }}" class="btn btn-outline-secondary">{{ $.Params.cta2_text | default site.Data.ui.btn_learn_more }}</a>{{ end }}
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+</section>
+{{ if .Params.hero_image }}
+<div id="hero-lightbox" onclick="heroLightboxClose()" style="display:none; position:fixed; inset:0; z-index: var(--prelight-z-lightbox); background: var(--prelight-overlay-lightbox); align-items:center; justify-content:center; cursor:zoom-out;">
+  <img id="hero-lightbox-img" src="" alt="" style="max-width: var(--prelight-max-vw-lightbox); max-height: var(--prelight-max-vh-lightbox); object-fit:contain; border-radius: var(--prelight-radius-lightbox); box-shadow: var(--prelight-shadow-lightbox); display:none;">
+  <video id="hero-lightbox-video" src="" autoplay muted loop playsinline style="max-width: var(--prelight-max-vw-lightbox); max-height: var(--prelight-max-vh-lightbox); object-fit:contain; border-radius: var(--prelight-radius-lightbox); box-shadow: var(--prelight-shadow-lightbox); display:none;"></video>
+</div>
+<script>
+  function heroLightboxClose() {
+    var lb = document.getElementById('hero-lightbox');
+    var img = document.getElementById('hero-lightbox-img');
+    var vid = document.getElementById('hero-lightbox-video');
+    lb.style.display = 'none';
+    img.style.display = 'none';
+    vid.style.display = 'none';
+    vid.pause();
+    vid.src = '';
+  }
+  function heroLightboxOpenImage(el) {
+    event.stopPropagation();
+    var lb = document.getElementById('hero-lightbox');
+    var img = document.getElementById('hero-lightbox-img');
+    var vid = document.getElementById('hero-lightbox-video');
+    vid.style.display = 'none';
+    vid.src = '';
+    img.src = el.src;
+    img.alt = el.alt;
+    img.style.display = 'block';
+    lb.style.display = 'flex';
+  }
+  function heroLightboxOpenVideo(el) {
+    event.stopPropagation();
+    var lb = document.getElementById('hero-lightbox');
+    var img = document.getElementById('hero-lightbox-img');
+    var vid = document.getElementById('hero-lightbox-video');
+    img.style.display = 'none';
+    vid.src = el.src;
+    vid.style.display = 'block';
+    lb.style.display = 'flex';
+  }
+</script>
+{{ end }}

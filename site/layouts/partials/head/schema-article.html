@@ -1,0 +1,38 @@
+<!-- BlogPosting / Article Schema.org structured data -->
+<!-- https://schema.org/BlogPosting -->
+
+{{ $iso8601 := "2006-01-02T15:04:05-07:00" -}}
+{{ $authorHandle := .Params.author | default "" -}}
+{{ $authorData := cond (ne $authorHandle "") (index hugo.Data.authors $authorHandle) nil -}}
+{{ $authorName := cond (ne $authorData nil) $authorData.name ($authorHandle | humanize | title) -}}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ .Title }},
+  {{ with .Params.hero_image -}}
+  "image": "{{ $.Site.BaseURL | strings.TrimRight "/" }}{{ . }}",
+  {{ end -}}
+  "datePublished": "{{ .PublishDate.Format $iso8601 }}",
+  "dateModified": "{{ .Lastmod.Format $iso8601 }}",
+  "author": {
+    "@type": "Person",
+    "name": {{ $authorName }}
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": {{ .Site.Title }},
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ .Site.BaseURL }}images/lightup-logo.png"
+    }
+  },
+  "url": "{{ .Permalink }}",
+  "description": {{ with .Params.description }}{{ . }}{{ else }}{{ .Summary | plainify | safeHTML }}{{ end }},
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ .Permalink }}"
+  }
+}
+</script>

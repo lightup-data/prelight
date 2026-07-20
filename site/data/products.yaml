@@ -1,0 +1,3 @@
+prelight:
+  install_cmd: "curl -sL https://raw.githubusercontent.com/lightup-data/prelight/master/setup.sh | bash"
+  github_url: "https://github.com/lightup-data/prelight"

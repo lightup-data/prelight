@@ -1,0 +1,17 @@
+<footer style="background-color: var(--prelight-fill-light); border-top: 1px solid var(--prelight-border-color);">
+  <div class="container py-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3" style="font-size: 0.8125rem; color: var(--prelight-text-muted);">
+      <span style="font-weight: 700; font-size: 0.9375rem; color: var(--prelight-text-black);">{{ site.Title }}</span>
+      <div class="d-flex gap-4">
+        <a href="https://github.com/lightup-data/prelight" target="_blank" rel="noopener" style="color: var(--prelight-text-muted); text-decoration: none;">GitHub</a>
+        <a href="https://www.lightup.ai/privacy-policy" target="_blank" rel="noopener" style="color: var(--prelight-text-muted); text-decoration: none;">Privacy</a>
+        <a href="https://www.lightup.ai/terms-of-service" target="_blank" rel="noopener" style="color: var(--prelight-text-muted); text-decoration: none;">Terms</a>
+      </div>
+      <span>© {{ now.Year }} Lightup Data, Inc.</span>
+    </div>
+  </div>
+</footer>
+{{ with .Site.Params.hubspot }}
+<script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/{{ . }}.js"></script>
+{{ end }}
+<script src="/js/utm-carry.js" defer></script>

@@ -1,0 +1,25 @@
+{{ with .Params.resources }}
+{{- $themeClass := "section-light" -}}
+{{- if eq $.Params.resources_theme "dark" }}{{- $themeClass = "section-dark" -}}{{- else if eq $.Params.resources_theme "gray" }}{{- $themeClass = "section-gray" -}}{{- end }}
+<section class="{{ $themeClass }}" style="padding: var(--prelight-section-padding-y) 0;">
+  <div class="container">
+    <h2 class="fw-bold text-center section-title">Resources</h2>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-{{ len . | string }} g-4">
+      {{ range . }}
+      <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            {{ with .title }}<h3 class="card-title h5 fw-semibold">{{ . }}</h3>{{ end }}
+            <ul class="{{ if gt (len .links) 1 }}mb-0{{ else }}list-unstyled mb-0{{ end }}">
+              {{ range .links }}
+              <li><a href="{{ .url }}" {{ if .external }}target="_blank" rel="noopener"{{ end }}>{{ .text }}</a>{{ with .note }} — {{ . }}{{ end }}</li>
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}
