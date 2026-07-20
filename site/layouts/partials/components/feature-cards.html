@@ -1,0 +1,62 @@
+{{- /* Support two calling conventions:
+     1. String section entry  → called with Page as context; reads features_* params.
+     2. Map section entry     → called with inline dict; reads title/theme/columns/features directly.
+*/ -}}
+{{- $title := "" -}}
+{{- $subtitle := "" -}}
+{{- $description := "" -}}
+{{- $image := "" -}}
+{{- $imageAlt := "" -}}
+{{- $theme := "" -}}
+{{- $columns := 3 -}}
+{{- $features := slice -}}
+{{- if reflect.IsMap . -}}
+  {{- $title = .title | default "" -}}
+  {{- $theme = .theme | default "" -}}
+  {{- $columns = .columns | default 3 -}}
+  {{- $description = .description | default "" -}}
+  {{- $features = .features | default slice -}}
+{{- else -}}
+  {{- $title = .Params.features_title | default "" -}}
+  {{- $subtitle = .Params.features_subtitle | default "" -}}
+  {{- $description = .Params.features_description | default "" -}}
+  {{- $image = .Params.features_image | default "" -}}
+  {{- $imageAlt = .Params.features_image_alt | default "" -}}
+  {{- $theme = .Params.features_theme | default "" -}}
+  {{- $columns = .Params.features_columns | default 3 -}}
+  {{- $features = .Params.features | default slice -}}
+{{- end -}}
+{{- if $features -}}
+{{- $themeClass := "section-light" -}}
+{{- if eq $theme "dark" }}{{- $themeClass = "section-dark" -}}{{- else if eq $theme "gray" }}{{- $themeClass = "section-gray" -}}{{- end }}
+{{- $flushTop := and (reflect.IsMap .) .flush_top -}}
+{{ if $flushTop }}<section class="{{ $themeClass }}" style="padding-top: calc(var(--prelight-section-padding-y) / 2); padding-bottom: var(--prelight-section-padding-y);">
+{{ else }}<section class="{{ $themeClass }}" style="padding: var(--prelight-section-padding-y) 0;">
+{{ end }}
+  <div class="container">
+    {{ with $title }}<h2 class="fw-bold text-center {{ if $subtitle }}section-title-sub{{ else }}section-title{{ end }}">{{ . }}</h2>{{ end }}
+    {{ with $subtitle }}<p class="text-center text-muted mb-5" style="max-width: 720px; margin-inline: auto;">{{ . }}</p>{{ end }}
+    {{ with $description }}<div class="mb-5" style="max-width: 760px; margin-inline: auto;">{{ . | markdownify }}</div>{{ end }}
+    {{ with $image }}<div class="mb-5 text-center"><img src="{{ . }}" alt="{{ $imageAlt }}" class="img-fluid"></div>{{ end }}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-{{ $columns }} g-4">
+      {{ range $features }}
+      {{ $feature := . }}
+      <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            {{ with .icon }}<div class="feature-icon mb-3">{{ if hasSuffix . ".svg" }}{{ readFile (printf "static%s" .) | safeHTML }}{{ else }}<img src="{{ . }}" alt="">{{ end }}</div>{{ end }}
+            {{ with .title }}<h3 class="card-title h5 fw-semibold">{{ . }}</h3>{{ end }}
+            {{ with .description }}<div class="card-text text-muted">{{ . | markdownify }}</div>{{ end }}
+          </div>
+          {{ with .link }}
+          <div class="card-footer bg-transparent border-0 pb-4">
+            <a href="{{ . }}" class="btn btn-outline-secondary btn-sm">{{ $feature.link_text | default site.Data.ui.btn_learn_more }}</a>
+          </div>
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{- end }}

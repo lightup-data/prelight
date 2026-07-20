@@ -1,0 +1,8 @@
+{
+  "name": "prelight-site",
+  "version": "1.0.0",
+  "dependencies": {
+    "@filipecarneiro/hugo-bootstrap-theme": "^1.0.50",
+    "bootstrap": "^5.3.8"
+  }
+}

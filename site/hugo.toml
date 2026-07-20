@@ -1,0 +1,30 @@
+baseURL = 'https://withprelight.ai/'
+locale = 'en-us'
+title = 'Prelight'
+
+theme = 'hugo-bootstrap-theme'
+themesdir = 'node_modules/@filipecarneiro'
+
+[markup.goldmark.renderer]
+  unsafe = true
+
+[params]
+  docsUrl = "https://github.com/lightup-data/prelight"
+  docsText = "Read the Docs"
+  getStartedUrl = "https://github.com/lightup-data/prelight"
+  getStartedText = "Get Started"
+  bookDemoUrl = "https://github.com/lightup-data/prelight"
+  bookDemoText = "View on GitHub"
+
+[params.organization]
+  name = "Lightup Data, Inc."
+
+[[menus.main]]
+  name = "Docs"
+  url = "https://github.com/lightup-data/prelight"
+  weight = 10
+
+[[menus.main]]
+  name = "GitHub"
+  url = "https://github.com/lightup-data/prelight"
+  weight = 20

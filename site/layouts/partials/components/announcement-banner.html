@@ -1,0 +1,5 @@
+{{ with site.Params.banner }}{{ if .enabled }}
+<div style="background: var(--prelight-gradient-dark); color: var(--prelight-text-white); text-align: center; padding: 0.5rem 1rem; font-size: 0.9rem;">
+  {{ .text }}{{ with .url }} <a href="{{ . }}" style="color: var(--prelight-fill-gold); font-weight: 600; white-space: nowrap;">{{ $.Site.Params.banner.cta | default "Learn more" }} &rarr;</a>{{ end }}
+</div>
+{{ end }}{{ end }}

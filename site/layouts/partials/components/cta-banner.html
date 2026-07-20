@@ -1,0 +1,32 @@
+{{ with .Params.cta_banner }}
+{{ $themeClass := "section-light" }}
+{{ if eq .theme "dark" }}{{ $themeClass = "section-dark" }}{{ end }}
+<section class="{{ $themeClass }}" style="padding: var(--prelight-section-padding-y-sm) 0;{{ if eq .theme "dark" }} background: var(--prelight-gradient-dark);{{ end }}">
+  <div class="container">
+    {{ if .image }}
+    <div class="row align-items-center g-5">
+      <div class="col-lg-3">
+        {{ with .title }}<h2 class="fw-bold mb-3">{{ . }}</h2>{{ end }}
+        {{ with .text }}<div class="mb-4">{{ . | markdownify }}</div>{{ end }}
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="{{ site.Params.getStartedUrl }}" class="btn btn-primary">{{ site.Params.getStartedText }}</a>
+          <a href="{{ site.Params.bookDemoUrl }}" class="btn btn-outline-secondary">{{ site.Params.bookDemoText }}</a>
+        </div>
+      </div>
+      <div class="col-lg-9 text-center">
+        <img src="{{ .image }}" alt="{{ .image_alt | default "" }}" class="img-fluid" style="max-width: 100%; width: auto;">
+      </div>
+    </div>
+    {{ else }}
+    <div class="text-center" style="max-width: 640px; margin: 0 auto;">
+      {{ with .title }}<h2 class="fw-bold mb-3">{{ . }}</h2>{{ end }}
+      {{ with .text }}<div class="mb-4">{{ . | markdownify }}</div>{{ end }}
+      <div class="d-flex gap-3 flex-wrap justify-content-center">
+        <a href="{{ site.Params.getStartedUrl }}" class="btn btn-primary">{{ site.Params.getStartedText }}</a>
+        <a href="{{ site.Params.bookDemoUrl }}" class="btn btn-outline-secondary">{{ site.Params.bookDemoText }}</a>
+      </div>
+    </div>
+    {{ end }}
+  </div>
+</section>
+{{ end }}

@@ -1,0 +1,398 @@
+:root {
+    /* Brand colors */
+    --hero-bg-color:            #f8fafc;
+    --prelight-accent:          #{$prelight-indigo};
+    --prelight-accent-dark:     #4338ca;
+    --prelight-accent-bg:       #ede9fe;
+    --prelight-accent-border:   #c4b5fd;
+
+    --prelight-text-white:      #ffffff;
+    --prelight-text-black:      #0f172a;
+    --prelight-text-secondary:  #475569;
+    --prelight-text-muted:      #94a3b8;
+    --prelight-fill-white:      #ffffff;
+    --prelight-fill-light:      #f8fafc;
+    --prelight-fill-github:     #24292e;
+    --prelight-fill-code-cta:   #f1f5f9;
+    --prelight-text-code-cta:   #334155;
+
+    --prelight-gradient-dark:   linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+
+    /* Semi-transparent backgrounds */
+    --prelight-bg-card-accent:      rgba(79, 70, 229, 0.06);
+    --prelight-bg-card-white-4:     rgba(255, 255, 255, 0.02);
+    --prelight-bg-card-white-8:     rgba(255, 255, 255, 0.14);
+    --prelight-bg-card-white-10:    rgba(255, 255, 255, 0.1);
+    --prelight-overlay-lightbox:    rgba(0, 0, 0, 0.85);
+    --prelight-bg-carousel-ctrl:    rgba(0, 0, 0, 0.4);
+    --prelight-bg-carousel-ctrl-hover: rgba(0, 0, 0, 0.65);
+
+    /* Borders */
+    --prelight-border-color:        #e2e8f0;
+    --prelight-border-card:         #e2e8f0;
+    --prelight-border-card-accent:  rgba(79, 70, 229, 0.15);
+    --prelight-border-card-white:   rgba(255, 255, 255, 0.15);
+    --prelight-border-footer:       #e2e8f0;
+    --prelight-border-hero-image:   rgba(79, 70, 229, 0.15);
+    --prelight-border-divider:      #e2e8f0;
+
+    /* Text on dark backgrounds */
+    --prelight-text-on-dark-85: rgba(255, 255, 255, 0.85);
+    --prelight-text-on-dark-75: rgba(255, 255, 255, 0.75);
+    --prelight-text-on-dark-60: rgba(255, 255, 255, 0.6);
+    --prelight-text-on-dark-50: rgba(255, 255, 255, 0.5);
+
+    /* Shadows */
+    --prelight-shadow-form:         0 8px 32px rgba(0, 0, 0, 0.08);
+    --prelight-shadow-card-image:   0 4px 16px rgba(0, 0, 0, 0.15);
+    --prelight-shadow-lightbox:     0 8px 48px rgba(0, 0, 0, 0.4);
+    --prelight-shadow-icon-dark:    rgba(0, 0, 0, 0.6);
+
+    /* Border radii */
+    --prelight-radius-pill:         999px;
+    --prelight-radius-card:         12px;
+    --prelight-radius-image:        0.75rem;
+    --prelight-radius-card-image:   0.5rem;
+    --prelight-radius-lightbox:     0.5rem;
+    --prelight-radius-hero:         0;
+
+    /* Typography */
+    --prelight-font-size-hero-h1:       clamp(1.8rem, 3vw, 2.8rem);
+    --prelight-font-size-hero-subtitle: clamp(14px, calc(14px + 0.5vw), 18px);
+    --prelight-font-size-section-lead:  clamp(16px, calc(16px + 0.4vw), 20px);
+    --prelight-font-size-feature-h3:    1.125rem;
+    --prelight-font-size-feature-body:  0.9375rem;
+    --prelight-font-size-badge:         0.7rem;
+    --prelight-font-size-badge-sm:      0.7rem;
+    --prelight-font-size-copy-btn:      1.25rem;
+    --prelight-font-weight-hero:        800;
+    --prelight-font-weight-badge:       600;
+    --prelight-letter-spacing-badge:    0.06em;
+    --prelight-padding-badge:           0.25em 0.65em;
+
+    /* Component sizes */
+    --prelight-height-logo:             28px;
+    --prelight-height-feature-icon:     2.25rem;
+    --prelight-height-hero-image:       700px;
+    --prelight-size-play-button:        56px;
+    --prelight-max-width-card:          380px;
+    --prelight-border-hero-image-width: 6px;
+
+    /* Hero sizing */
+    --prelight-size-hero-img-back:  75%;
+    --prelight-size-hero-video-front: 85%;
+    --prelight-max-vw-lightbox:     90vw;
+    --prelight-max-vh-lightbox:     90vh;
+    --prelight-offset-navbar-logo:  0px;
+
+    /* Section spacing */
+    --prelight-section-title-mb:        2.5rem;
+    --prelight-section-title-mb-sub:    1rem;
+    --prelight-section-padding-y:       5rem;
+    --prelight-section-padding-y-sm:    3.5rem;
+    --prelight-section-padding-inner:   2.5rem;
+
+    /* Z-index scale */
+    --prelight-z-bg:        0;
+    --prelight-z-scrim:     1;
+    --prelight-z-content:   2;
+    --prelight-z-video:     3;
+    --prelight-z-lightbox:  9999;
+
+    /* Opacity */
+    --prelight-opacity-video: 0.95;
+}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+
+.bd-masthead {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--hero-bg-color);
+    border-bottom: 1px solid var(--prelight-border-color);
+
+    h1 { color: var(--prelight-text-black); }
+    .lead { color: var(--prelight-text-secondary); }
+    .text-muted { color: var(--prelight-text-secondary) !important; }
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+
+.section-light {
+    background-color: var(--prelight-fill-white);
+    color: var(--prelight-text-black);
+
+    h2, h3 { color: var(--prelight-text-black); }
+    a:not(.btn) { color: var(--prelight-accent); text-decoration: none; }
+    a:not(.btn):hover { color: var(--prelight-accent-dark); }
+    li::marker { color: var(--prelight-accent); }
+}
+
+.section-gray {
+    background-color: var(--prelight-fill-light);
+    color: var(--prelight-text-black);
+
+    h2, h3 { color: var(--prelight-text-black); }
+    a:not(.btn) { color: var(--prelight-accent); text-decoration: none; }
+    a:not(.btn):hover { color: var(--prelight-accent-dark); }
+    li::marker { color: var(--prelight-accent); }
+}
+
+.section-dark {
+    background: var(--prelight-gradient-dark);
+    color: var(--prelight-text-white);
+
+    .feature-icon svg,
+    .feature-icon img { filter: brightness(0) invert(1); }
+
+    h2, h3 { color: var(--prelight-text-white); }
+    p, li { color: var(--prelight-text-on-dark-85); }
+    a:not(.btn) { color: rgba(255,255,255,0.8); text-decoration: none; }
+    a:not(.btn):hover { color: #fff; }
+
+    .card {
+        background-color: var(--prelight-bg-card-white-10);
+        color: var(--prelight-text-white);
+        border-color: var(--prelight-border-card-white) !important;
+    }
+
+    .text-muted { color: var(--prelight-text-on-dark-75) !important; }
+}
+
+.feature-highlight-light {
+    background-color: var(--prelight-fill-white);
+    color: var(--prelight-text-black);
+
+    h2 { color: var(--prelight-accent); }
+    a:not(.btn) { color: var(--prelight-accent); text-decoration: none; }
+    a:not(.btn):hover { color: var(--prelight-accent-dark); }
+    li::marker { color: var(--prelight-accent); }
+}
+
+.feature-highlight-gray {
+    background-color: var(--prelight-fill-light);
+    color: var(--prelight-text-black);
+
+    h2 { color: var(--prelight-accent); }
+    a:not(.btn) { color: var(--prelight-accent); text-decoration: none; }
+    a:not(.btn):hover { color: var(--prelight-accent-dark); }
+    li::marker { color: var(--prelight-accent); }
+}
+
+.feature-highlight-dark {
+    background: var(--prelight-gradient-dark);
+    color: var(--prelight-text-white);
+
+    a:not(.btn) { color: rgba(255,255,255,0.8); text-decoration: none; }
+    a:not(.btn):hover { color: #fff; }
+}
+
+/* ── Navbar ───────────────────────────────────────────────── */
+
+.navbar {
+    @extend .navbar-light;
+
+    padding: 0 0;
+    min-height: 64px;
+    background-color: var(--prelight-fill-white) !important;
+    border-bottom: 1px solid var(--prelight-border-color);
+    box-shadow: none;
+
+    .navbar-brand {
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--prelight-text-black);
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .nav-link {
+        color: var(--prelight-text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding-left: 1em;
+        padding-right: 1em;
+
+        &:hover, &:focus { color: var(--prelight-text-black); }
+    }
+
+    .dropdown-toggle::after { display: none; }
+
+    .nav-item.dropdown:hover > .dropdown-menu {
+        display: block;
+        margin-top: 0;
+    }
+}
+
+.navbar-brand {
+    transition: opacity 0.15s ease;
+    &:hover { opacity: 0.75; transform: none; }
+}
+
+/* ── Dropdown ─────────────────────────────────────────────── */
+
+.dropdown-menu {
+    background-color: var(--prelight-fill-white);
+    border: 1px solid var(--prelight-border-color);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+
+    .dropdown-item {
+        color: var(--prelight-text-black);
+        font-size: 0.875rem;
+
+        &:hover, &:focus, &.active {
+            background-color: var(--prelight-fill-light);
+            color: var(--prelight-accent);
+        }
+    }
+}
+
+.dropdown-submenu {
+    position: relative;
+
+    > .dropdown-menu {
+        top: 0;
+        left: 100%;
+        margin-top: -0.25rem;
+        display: none;
+    }
+
+    &:hover > .dropdown-menu { display: block; }
+
+    > .dropdown-toggle::after {
+        border-top: 0.3em solid transparent;
+        border-bottom: 0.3em solid transparent;
+        border-left: 0.3em solid;
+        border-right: 0;
+        vertical-align: middle;
+    }
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+
+.btn-primary {
+    --bs-btn-color:              #fff;
+    --bs-btn-hover-color:        #fff;
+    --bs-btn-active-color:       #fff;
+    --bs-btn-bg:                 var(--prelight-accent);
+    --bs-btn-border-color:       var(--prelight-accent);
+    --bs-btn-hover-bg:           var(--prelight-accent-dark);
+    --bs-btn-hover-border-color: var(--prelight-accent-dark);
+    --bs-btn-active-bg:          var(--prelight-accent-dark);
+    --bs-btn-active-border-color: var(--prelight-accent-dark);
+    font-weight: 600;
+}
+
+.btn-outline-secondary {
+    --bs-btn-color:              var(--prelight-text-secondary);
+    --bs-btn-border-color:       var(--prelight-border-color);
+    --bs-btn-hover-color:        var(--prelight-text-black);
+    --bs-btn-active-color:       var(--prelight-text-black);
+    --bs-btn-bg:                 transparent;
+    --bs-btn-hover-bg:           var(--prelight-fill-light);
+    --bs-btn-active-bg:          var(--prelight-fill-light);
+    --bs-btn-hover-border-color: var(--prelight-border-color);
+    --bs-btn-active-border-color: var(--prelight-border-color);
+    font-weight: 500;
+}
+
+/* ── Feature icons ────────────────────────────────────────── */
+
+.feature-icon svg,
+.feature-icon img {
+    height: var(--prelight-height-feature-icon);
+    width: auto;
+    display: block;
+    filter: none;
+    color: var(--prelight-accent);
+}
+
+.section-light .feature-icon svg,
+.section-light .feature-icon img,
+.section-gray .feature-icon svg,
+.section-gray .feature-icon img {
+    filter: invert(30%) sepia(80%) saturate(500%) hue-rotate(220deg) brightness(95%);
+}
+
+/* ── Section titles ───────────────────────────────────────── */
+
+.section-title {
+    margin-bottom: var(--prelight-section-title-mb);
+}
+
+.section-title-sub {
+    margin-bottom: var(--prelight-section-title-mb-sub);
+}
+
+/* ── Code CTA (install command) ───────────────────────────── */
+
+.code-pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.hero-code-cta {
+    @include media-breakpoint-up(lg) {
+        margin-right: calc(var(--bs-gutter-x) * -.5);
+    }
+}
+
+/* ── Lightbox ─────────────────────────────────────────────── */
+
+.feature-lightbox-img {
+    max-width: calc(100vw - 7rem);
+    max-height: calc(100vh - 7rem);
+    min-width: 500px;
+
+    @include media-breakpoint-down(sm) {
+        max-width: calc(100vw - 2rem);
+        max-height: calc(100vh - 4rem);
+    }
+}
+
+/* ── Hero YouTube ─────────────────────────────────────────── */
+
+.hero-youtube-wrap {
+    width: 85%;
+    @include media-breakpoint-down(lg) { width: 100%; }
+}
+
+/* ── Code block pre ───────────────────────────────────────── */
+
+.feature-highlight-light pre,
+.feature-highlight-gray pre,
+.feature-highlight-dark pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    background-color: var(--prelight-fill-light);
+    color: var(--prelight-text-black);
+    border-radius: var(--bs-border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ── Legal pages ──────────────────────────────────────────── */
+
+.legal-content {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    h2 { font-size: 1.25rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--bs-body-color); }
+    h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--bs-body-color); }
+    p { margin-bottom: 0.85rem; line-height: 1.7; font-size: 0.9375rem; color: var(--bs-secondary-color); }
+    a { color: var(--prelight-accent); }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+
+@include media-breakpoint-down(md) {
+    :root {
+        --prelight-section-padding-y: 3rem;
+    }
+
+    .bd-masthead {
+        h1.display-4 { font-size: 2rem; }
+        h1.display-5 { font-size: 1.6rem; }
+        .lead.fs-3    { font-size: 1.05rem !important; }
+    }
+}

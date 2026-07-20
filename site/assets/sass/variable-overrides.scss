@@ -1,0 +1,30 @@
+// Prelight brand colors
+$prelight-indigo: #4f46e5;
+
+// Bootstrap variable overrides
+$primary:       $prelight-indigo;
+$secondary:     #64748b;
+$success:       #16a34a;
+$info:          #0ea5e9;
+$warning:       #d97706;
+$danger:        #dc2626;
+$light:         #f8fafc;
+$dark:          #0f172a;
+
+$body-bg:    #fff;
+$body-color: #0f172a;
+
+$font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+$font-family-base:       $font-family-sans-serif;
+
+$border-radius:    0.5rem;
+$border-radius-lg: 0.625rem;
+$border-radius-sm: 0.375rem;
+
+$container-max-widths: (
+  sm: 540px,
+  md: 720px,
+  lg: 960px,
+  xl: 1140px,
+  xxl: 1200px
+);

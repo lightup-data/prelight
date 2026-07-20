@@ -1,0 +1,20 @@
+logo: "/images/lightup-logo.png"
+logo_alt: "Prelight"
+
+social:
+  - name: LinkedIn
+    url: "https://www.linkedin.com/company/lightupdata"
+    icon: "/images/icons/linkedin.svg"
+  - name: X / Twitter
+    url: "https://twitter.com/lightupdata"
+    icon: "/images/icons/twitter.svg"
+
+nav_columns: []
+
+legal:
+  heading: Legal
+  links:
+    - name: Terms of Service
+      url: "https://www.lightup.ai/terms-of-service"
+    - name: Privacy Policy
+      url: "https://www.lightup.ai/privacy-policy"

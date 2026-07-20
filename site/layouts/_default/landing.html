@@ -1,0 +1,38 @@
+{{ define "main" }}
+{{ partial "components/hero.html" . }}
+<div class="container pt-2 pb-5">
+  {{ .Content }}
+</div>
+{{ range .Params.sections }}
+  {{ if reflect.IsMap . }}
+    {{ if ne .type "cta-banner" }}{{ partial (printf "components/%s.html" .type) . }}{{ end }}
+  {{ else }}
+    {{ if ne . "cta-banner" }}{{ partial (printf "components/%s.html" .) $ }}{{ end }}
+  {{ end }}
+{{ end }}
+{{ partial "components/resources.html" . }}
+{{ range .Params.sections }}
+  {{ if reflect.IsMap . }}
+    {{ if eq .type "cta-banner" }}{{ partial "components/cta-banner.html" . }}{{ end }}
+  {{ else }}
+    {{ if eq . "cta-banner" }}{{ partial "components/cta-banner.html" $ }}{{ end }}
+  {{ end }}
+{{ end }}
+<div id="feature-img-lightbox" onclick="featureImgLightboxClose()" style="display:none; position:fixed; inset:0; z-index: var(--prelight-z-lightbox); background: var(--prelight-overlay-lightbox); cursor:zoom-out; align-items:center; justify-content:center;">
+  <div style="padding:1.5rem; border-radius: var(--prelight-radius-lightbox); box-shadow: var(--prelight-shadow-lightbox); background: var(--prelight-fill-white);">
+    <img id="feature-img-lightbox-img" src="" alt="" class="feature-lightbox-img" style="width:auto; height:auto; display:block; border-radius: var(--prelight-radius-lightbox);">
+  </div>
+</div>
+<script>
+  function featureImgLightboxOpen(el) {
+    var lb = document.getElementById('feature-img-lightbox');
+    var img = document.getElementById('feature-img-lightbox-img');
+    img.src = el.src;
+    img.alt = el.alt;
+    lb.style.display = 'flex';
+  }
+  function featureImgLightboxClose() {
+    document.getElementById('feature-img-lightbox').style.display = 'none';
+  }
+</script>
+{{ end }}

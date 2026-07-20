@@ -1,0 +1,12 @@
+{{ with .Params.softwareApplication }}
+{{- $schema := dict
+  "@context" "https://schema.org"
+  "@type" (slice "SoftwareApplication" "WebApplication")
+  "name" .name
+  "description" .description
+  "applicationCategory" .applicationCategory
+  "operatingSystem" .operatingSystem
+  "offers" (dict "@type" "Offer" "price" "0" "priceCurrency" "USD" "url" $.Permalink)
+-}}
+{{ printf "<script type=\"application/ld+json\">%s</script>" ($schema | jsonify) | safeHTML }}
+{{ end }}
