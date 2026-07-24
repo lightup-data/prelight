@@ -150,6 +150,27 @@
     a:not(.btn) { color: rgba(255,255,255,0.8); text-decoration: none; }
     a:not(.btn):hover { color: #fff; }
 
+    .btn-primary {
+        --bs-btn-bg:                  #fff;
+        --bs-btn-border-color:        #fff;
+        --bs-btn-color:               var(--prelight-accent);
+        --bs-btn-hover-bg:            rgba(255, 255, 255, 0.9);
+        --bs-btn-hover-border-color:  rgba(255, 255, 255, 0.9);
+        --bs-btn-hover-color:         var(--prelight-accent-dark);
+        --bs-btn-active-bg:           rgba(255, 255, 255, 0.85);
+        --bs-btn-active-border-color: rgba(255, 255, 255, 0.85);
+        --bs-btn-active-color:        var(--prelight-accent-dark);
+        background-color: #fff;
+        border-color: #fff;
+        color: var(--prelight-accent);
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-color: rgba(255, 255, 255, 0.9);
+            color: var(--prelight-accent-dark);
+        }
+    }
+
     .btn-outline-secondary {
         --bs-btn-color:               rgba(255, 255, 255, 0.85);
         --bs-btn-border-color:        rgba(255, 255, 255, 0.35);
