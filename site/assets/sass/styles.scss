@@ -412,6 +412,134 @@
     margin-bottom: 1rem;
 }
 
+/* ── Why Data is Different ────────────────────────────────── */
+
+
+.why-data-body {
+    font-size: 1.0625rem;
+    color: var(--prelight-text-secondary);
+    line-height: 1.75;
+    margin-bottom: 1rem;
+}
+
+.delete-callout {
+    display: block;
+    background: #fff1f2;
+    border-left: 4px solid #dc2626;
+    color: #991b1b;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 0 6px 6px 0;
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+}
+
+.tweet-card {
+    display: block;
+    background: var(--prelight-fill-white);
+    border: 1px solid var(--prelight-border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    max-width: 360px;
+    color: var(--prelight-text-black);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: #c7d2fe;
+    }
+}
+
+.tweet-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--prelight-border-color);
+    flex-shrink: 0;
+}
+
+.tweet-author {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--prelight-text-black);
+}
+
+.tweet-handle {
+    font-size: 0.8rem;
+    color: var(--prelight-text-muted);
+}
+
+.tweet-logo {
+    color: #1d9bf0;
+}
+
+.tweet-text {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--prelight-text-black);
+    margin: 0;
+
+    p {
+        margin-bottom: 0.5rem;
+        &:last-child { margin-bottom: 0; }
+    }
+
+    code {
+        font-family: 'Menlo', 'Consolas', monospace;
+        background: #fff1f2;
+        color: #dc2626;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.875em;
+    }
+}
+
+.tweet-avatar-sm {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.tweet-quoted {
+    border: 1px solid var(--prelight-border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: var(--prelight-fill-light);
+}
+
+.tweet-quoted-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--prelight-text-black);
+    margin-bottom: 0.6rem;
+}
+
+.tweet-article-card {
+    border: 1px solid var(--prelight-border-color);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    background: var(--prelight-fill-white);
+}
+
+.tweet-article-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--prelight-text-black);
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+}
+
+.tweet-article-desc {
+    font-size: 0.75rem;
+    color: var(--prelight-text-secondary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 /* ── Legal pages ──────────────────────────────────────────── */
 
 .legal-content {

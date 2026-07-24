@@ -38,7 +38,29 @@ cta_banner:
   title: "Ship data pipelines safely, from day one."
   text: "Give your agents and engineers a safe space to iterate — with automated checks, human review, and one-click rollback."
 
+why_data_different:
+  tweet:
+    url: "https://x.com/JustJake/status/2048603314137559055"
+    author: "Jake"
+    handle: "@JustJake"
+    text: |
+      There's a massive, massive opportunity for "vibecode safely in prod at scale"
+
+      1B+ developers who look like JER, don't read 100% of their prompts, and want to build are coming online
+
+      For us toolmakers, the burden of making bulletproof tooling goes up
+
+      We live in exciting times
+    quoted_tweet:
+      url: "https://x.com/lifeofjer/status/2048103471019434248"
+      author: "JER"
+      handle: "@lifeofjer"
+      text: "really fucking bad."
+      article_title: "An AI Agent Just Destroyed Our Production Data. It Confessed in Writing."
+      article_desc: "A 30-hour timeline of how Cursor's agent, Railway's API, and an industry that markets AI safety faster than it ships it took down a small business serving rental companies across the country."
+
 sections:
   - feature-cards
+  - why-data-different
   - cta-banner
 ---

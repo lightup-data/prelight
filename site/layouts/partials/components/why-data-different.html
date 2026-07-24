@@ -1,0 +1,76 @@
+{{- $p       := .Params.why_data_different | default dict -}}
+{{- $tweet   := $p.tweet   | default dict -}}
+{{- $quoted  := $tweet.quoted_tweet | default dict -}}
+<section class="section-gray" style="padding: var(--prelight-section-padding-y) 0;">
+  <div class="container">
+    <h2 class="fw-bold text-center section-title-sub">Why Data is Different</h2>
+    <p class="text-center fw-semibold mb-5" style="font-size: clamp(1.2rem, 1.8vw, 1.6rem); color: var(--prelight-text-black); max-width: 600px; margin-inline: auto; line-height: 1.3;">One mistake can nuke your entire database.</p>
+    <div class="row g-5 align-items-center justify-content-center">
+
+      <!-- Left: prose -->
+      <div class="col-lg-6">
+        <p class="why-data-body">
+          Vibe-coding apps is forgiving — a bad push ships a broken UI,
+          you fix it and redeploy. The blast radius is bounded.
+        </p>
+        <p class="why-data-body mb-1">
+          Vibe-coding data is not forgiving. It's very easy for an agent to
+          inadvertently run:
+        </p>
+        <div class="delete-callout">DELETE FROM orders</div>
+        <p class="why-data-body">
+          No WHERE clause. No warning. Records gone — potentially millions of them,
+          across tables that may have no backup. By the time you notice,
+          the damage has already propagated downstream.
+        </p>
+        <p class="why-data-body mb-0">
+          This isn't hypothetical — it's
+          <a href="{{ $tweet.url | default "#" }}" target="_blank" rel="noopener" style="color: var(--prelight-accent); text-decoration: underline; text-underline-offset: 2px;">already happening in production</a>.
+          Prelight gives agents a sandbox that is correct by construction —
+          so they can iterate freely without the risk of an irrecoverable mistake.
+        </p>
+      </div>
+
+      <!-- Right: tweet card -->
+      {{ if $tweet.text }}
+      <div class="col-lg-5 d-flex justify-content-center">
+        <a href="{{ $tweet.url | default "#" }}" target="_blank" rel="noopener" class="tweet-card text-decoration-none">
+
+          <!-- Jake header -->
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="tweet-avatar"></div>
+            <div>
+              <div class="tweet-author">{{ $tweet.author }}</div>
+              <div class="tweet-handle">{{ $tweet.handle }}</div>
+            </div>
+            <svg class="tweet-logo ms-auto flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.259 5.629L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </div>
+
+          <!-- Jake tweet text -->
+          <div class="tweet-text mb-3">{{ $tweet.text | markdownify }}</div>
+
+          <!-- Quoted tweet (JER) -->
+          {{ if $quoted.text }}
+          <div class="tweet-quoted">
+            <div class="d-flex align-items-center gap-1 mb-1">
+              <div class="tweet-avatar tweet-avatar-sm"></div>
+              <span class="tweet-author" style="font-size: 0.8rem;">{{ $quoted.author }}</span>
+              <span class="tweet-handle" style="font-size: 0.8rem;">{{ $quoted.handle }}</span>
+            </div>
+            <div class="tweet-quoted-text">{{ $quoted.text }}</div>
+            {{ if $quoted.article_title }}
+            <div class="tweet-article-card">
+              <div class="tweet-article-title">{{ $quoted.article_title }}</div>
+              {{ with $quoted.article_desc }}<div class="tweet-article-desc">{{ . }}</div>{{ end }}
+            </div>
+            {{ end }}
+          </div>
+          {{ end }}
+
+        </a>
+      </div>
+      {{ end }}
+
+    </div>
+  </div>
+</section>
