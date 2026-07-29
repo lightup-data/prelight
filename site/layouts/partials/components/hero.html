@@ -39,7 +39,8 @@
       </div>
       {{ end }}
       <div class="col-lg-{{ $textCols }} d-flex flex-column justify-content-center">
-        <h1 class="display-4 fw-bold mb-3">{{ .Title }}{{ with .Params.badge }} <span style="display: inline-block; vertical-align: text-top; font-size: var(--prelight-font-size-badge-sm); background: var(--prelight-accent-bg); color: var(--prelight-accent); border: 1px solid var(--prelight-accent-border); padding: var(--prelight-padding-badge); border-radius: var(--prelight-radius-pill); font-weight: var(--prelight-font-weight-badge); letter-spacing: var(--prelight-letter-spacing-badge); text-transform: uppercase;">{{ . }}</span>{{ end }}</h1>
+        {{ with .Params.badge }}<div class="mb-2"><span style="display: inline-block; font-size: var(--prelight-font-size-badge-sm); background: var(--prelight-accent-bg); color: var(--prelight-accent); border: 1px solid var(--prelight-accent-border); padding: var(--prelight-padding-badge); border-radius: var(--prelight-radius-pill); font-weight: var(--prelight-font-weight-badge); letter-spacing: var(--prelight-letter-spacing-badge); text-transform: uppercase;">{{ . }}</span></div>{{ end }}
+        <h1 class="display-4 fw-bold mb-3">{{ .Title }}</h1>
         {{ with .Params.subtitle }}<p class="lead fs-3 mb-2">{{ . }}</p>{{ end }}
         {{ with .Params.subtext }}<p class="text-muted mb-3">{{ . }}</p>{{ end }}
         {{- $ctaUrl := .Params.cta_url -}}

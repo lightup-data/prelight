@@ -15,7 +15,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="container">
 
       <!-- Brand (text wordmark) -->
-      <a class="navbar-brand" href="{{ .Site.Home.RelPermalink }}">{{ .Site.Title }}</a>
+      <div class="d-flex align-items-center me-4" style="gap: 0.3rem;">
+        <a class="navbar-brand me-0" href="{{ .Site.Home.RelPermalink }}">{{ .Site.Title }}</a>
+        <span class="navbar-by-lightup" style="color: var(--prelight-text-muted);">by <a href="https://lightup.ai" target="_blank" rel="noopener" style="color: var(--prelight-text-muted); text-decoration: none;">Lightup</a></span>
+      </div>
 
       <!-- Menu Toggler -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ site.Data.ui.aria_toggle_nav }}">

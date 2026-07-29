@@ -270,6 +270,18 @@
     &:hover { opacity: 0.75; transform: none; }
 }
 
+.navbar-by-lightup {
+    font-size: 0.75rem;
+    color: var(--prelight-text-muted);
+    margin-left: 0.35rem;
+
+    a {
+        color: var(--prelight-text-muted);
+        text-decoration: none;
+        &:hover { color: var(--prelight-text-secondary); }
+    }
+}
+
 /* ── Dropdown ─────────────────────────────────────────────── */
 
 .dropdown-menu {
