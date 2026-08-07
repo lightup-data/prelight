@@ -24,6 +24,10 @@ def run_setup_demo_core() -> str:
 
     if settings.backend == "duckdb":
         return _run_duckdb_setup(settings)
+    elif settings.backend == "postgres":
+        return _run_postgres_setup(settings)
+    elif settings.backend == "snowflake":
+        return _run_snowflake_setup(settings)
     else:
         return _run_databricks_setup(settings)
 
@@ -97,6 +101,80 @@ def _run_duckdb_setup(settings) -> str:
         )
         counts = ", ".join(f"{r['t']} ({r['n']} rows)" for r in rows)
         return f"✅ Demo data ready in {schema} ({display_path}): {counts}. Say: List my tables"
+    except Exception:
+        return f"✅ Demo data setup complete in {schema}. Say: List my tables"
+
+
+def _run_postgres_setup(settings) -> str:
+    from prelight.core.clients.postgres_client import execute_statement, execute_query
+
+    schema = settings.db_schema
+    sql_path = Path(__file__).parent.parent.parent / "setup" / "postgres" / "demo_data.sql"
+    if not sql_path.exists():
+        # Fall back to the Databricks/ANSI SQL file — it is largely compatible with Postgres
+        sql_path = Path(__file__).parent.parent.parent / "setup" / "databricks" / "demo_data.sql"
+    if not sql_path.exists():
+        return f"❌ Could not find Postgres demo SQL at {sql_path}"
+
+    raw_sql = sql_path.read_text(encoding="utf-8")
+    if schema != "public":
+        raw_sql = raw_sql.replace("public.", f"{schema}.")
+    statements = _split_statements(raw_sql)
+
+    failed = 0
+    for stmt in statements:
+        try:
+            execute_statement(stmt)
+        except Exception:
+            failed += 1
+
+    if failed:
+        return f"⚠️ Demo setup: {failed} of {len(statements)} statement(s) failed."
+
+    try:
+        rows = execute_query(
+            f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
+            f"UNION ALL "
+            f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
+        )
+        counts = ", ".join(f"{r['t']} ({r['n']} rows)" for r in rows)
+        return f"✅ Demo data ready in {schema}: {counts}. Say: List my tables"
+    except Exception:
+        return f"✅ Demo data setup complete in {schema}. Say: List my tables"
+
+
+def _run_snowflake_setup(settings) -> str:
+    from prelight.core.clients.snowflake_client import execute_statement, execute_query
+
+    schema = settings.db_schema
+    sql_path = Path(__file__).parent.parent.parent / "setup" / "snowflake" / "demo_data.sql"
+    if not sql_path.exists():
+        # Fall back to the Databricks/ANSI SQL file — compatible with Snowflake
+        sql_path = Path(__file__).parent.parent.parent / "setup" / "databricks" / "demo_data.sql"
+    if not sql_path.exists():
+        return f"❌ Could not find Snowflake demo SQL at {sql_path}"
+
+    raw_sql = sql_path.read_text(encoding="utf-8")
+    statements = _split_statements(raw_sql)
+
+    failed = 0
+    for stmt in statements:
+        try:
+            execute_statement(stmt)
+        except Exception:
+            failed += 1
+
+    if failed:
+        return f"⚠️ Demo setup: {failed} of {len(statements)} statement(s) failed."
+
+    try:
+        rows = execute_query(
+            f"SELECT 'customers' AS t, COUNT(*) AS n FROM {schema}.customers "
+            f"UNION ALL "
+            f"SELECT 'orders', COUNT(*) FROM {schema}.orders"
+        )
+        counts = ", ".join(f"{r['t']} ({r['n']} rows)" for r in rows)
+        return f"✅ Demo data ready in {schema}: {counts}. Say: List my tables"
     except Exception:
         return f"✅ Demo data setup complete in {schema}. Say: List my tables"
 

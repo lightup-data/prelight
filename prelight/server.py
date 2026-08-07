@@ -920,7 +920,141 @@ def configure_databricks(
     )
 
 
-# ── Tool 13: ingest_csv ───────────────────────────────────────────────────────
+# ── Tool 13: configure_postgres ──────────────────────────────────────────────
+
+
+@mcp.tool()
+def configure_postgres(
+    host: str,
+    database: str,
+    user: str,
+    password: str,
+    port: int = 5432,
+    schema: str = "public",
+    ssl_mode: str = "prefer",
+) -> str:
+    """Switch the active database backend to PostgreSQL and update config.yaml.
+
+    Call this when the user says they want to use PostgreSQL or provides
+    Postgres credentials. DO NOT call with placeholder values — collect
+    real credentials from the user first.
+
+    Before calling, ask the user for:
+      1. Host (e.g. localhost or db.example.com)
+      2. Database name
+      3. Username
+      4. Password
+      5. Port (default: 5432)
+      6. Schema name (default: public — ask only if they use a different one)
+
+    host:     PostgreSQL server hostname or IP
+    database: Database name
+    user:     Username
+    password: Password
+    port:     Port number (default: 5432)
+    schema:   Schema containing the tables (default: public)
+    ssl_mode: SSL mode — prefer, require, disable, verify-full (default: prefer)
+    """
+    from prelight.cli.configure import apply_postgres
+    from prelight.core.clients import reset_all
+
+    host = host.strip()
+    database = database.strip()
+    user = user.strip()
+
+    if not host or not database or not user:
+        return "❌ host, database, and user are required."
+
+    config_file = apply_postgres(
+        host=host,
+        port=port,
+        database=database,
+        user=user,
+        password=password,
+        schema=schema.strip() or "public",
+        ssl_mode=ssl_mode.strip() or "prefer",
+        sandbox_prefix="sbx_",
+        audit_table="qg_quality_results",
+    )
+    reset_all()
+
+    return (
+        f"✅ Switched to PostgreSQL backend. "
+        f"Host: {host}:{port} | Database: {database} | Schema: {schema} | Config: {config_file}. "
+        f"You can now say: List my tables"
+    )
+
+
+# ── Tool 14: configure_snowflake ──────────────────────────────────────────────
+
+
+@mcp.tool()
+def configure_snowflake(
+    account: str,
+    user: str,
+    password: str,
+    warehouse: str,
+    database: str,
+    schema: str = "public",
+    role: str = "",
+) -> str:
+    """Switch the active database backend to Snowflake and update config.yaml.
+
+    Call this when the user says they want to use Snowflake or provides
+    Snowflake credentials. DO NOT call with placeholder values — collect
+    real credentials from the user first.
+
+    Before calling, ask the user for:
+      1. Account identifier  (e.g. xy12345.us-east-1 or myorg-myaccount)
+      2. Username
+      3. Password
+      4. Warehouse name  (the compute warehouse to use)
+      5. Database name
+      6. Schema name (default: public — ask only if they use a different one)
+      7. Role (optional — leave empty to use the user's default role)
+
+    account:   Snowflake account identifier (without .snowflakecomputing.com)
+    user:      Username
+    password:  Password
+    warehouse: Compute warehouse name
+    database:  Database name
+    schema:    Schema containing the tables (default: public)
+    role:      Snowflake role to use (optional)
+    """
+    from prelight.cli.configure import apply_snowflake
+    from prelight.core.clients import reset_all
+
+    account = account.strip()
+    user = user.strip()
+    warehouse = warehouse.strip()
+    database = database.strip()
+
+    if not account or not user or not warehouse or not database:
+        return "❌ account, user, warehouse, and database are required."
+
+    config_file = apply_snowflake(
+        account=account,
+        user=user,
+        password=password,
+        warehouse=warehouse,
+        database=database,
+        schema=schema.strip() or "public",
+        role=role.strip() or None,
+        sandbox_prefix="sbx_",
+        audit_table="qg_quality_results",
+    )
+    reset_all()
+
+    role_part = f" | Role: {role}" if role.strip() else ""
+    return (
+        f"✅ Switched to Snowflake backend. "
+        f"Account: {account} | Warehouse: {warehouse} | Database: {database} | Schema: {schema}"
+        f"{role_part} | Config: {config_file}. "
+        f"You can now say: List my tables"
+    )
+
+
+# ── Tool 15: ingest_csv ───────────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -945,9 +1079,14 @@ def ingest_csv(table_name: str, url: str) -> str:
         client = get_client()
 
         if settings.backend != "duckdb":
+            backend_hint = {
+                "databricks": "upload the file to a Databricks volume and use COPY INTO.",
+                "postgres": "use COPY or \\copy to load data into PostgreSQL.",
+                "snowflake": "use the Snowflake COPY INTO command with a stage.",
+            }.get(settings.backend, "use your database's native bulk-load tool.")
             return (
-                "❌ ingest_csv only supports DuckDB. "
-                "For Databricks, upload the file to a Databricks volume and use COPY INTO."
+                f"❌ ingest_csv only supports DuckDB. "
+                f"For {settings.backend}, {backend_hint}"
             )
 
         # Validate table name (prevents SQL injection)

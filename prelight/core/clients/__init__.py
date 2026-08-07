@@ -1,8 +1,8 @@
 """
 Database client factory and config-switching utilities.
 
-get_client() returns the active backend module (databricks_client or duckdb_client)
-based on the configured backend in config.yaml. Both modules expose the same interface:
+get_client() returns the active backend module based on config.yaml.
+All backend modules expose the same interface:
 
     execute_query(sql)                              -> list[dict]
     execute_statement(sql)                          -> None
@@ -32,6 +32,12 @@ def get_client() -> ModuleType:
     if settings.backend == "duckdb":
         from prelight.core.clients import duckdb_client
         return duckdb_client
+    elif settings.backend == "postgres":
+        from prelight.core.clients import postgres_client
+        return postgres_client
+    elif settings.backend == "snowflake":
+        from prelight.core.clients import snowflake_client
+        return snowflake_client
     else:
         from prelight.core.clients import databricks_client
         return databricks_client
@@ -48,3 +54,12 @@ def reset_all() -> None:
     reset_settings()
     duckdb_client.reset_connection()
     databricks_client.reset_connection()
+    # Reset postgres and snowflake only if their modules are already imported
+    # (avoids triggering ImportError for uninstalled optional deps)
+    import sys
+    if "prelight.core.clients.postgres_client" in sys.modules:
+        from prelight.core.clients import postgres_client
+        postgres_client.reset_connection()
+    if "prelight.core.clients.snowflake_client" in sys.modules:
+        from prelight.core.clients import snowflake_client
+        snowflake_client.reset_connection()
