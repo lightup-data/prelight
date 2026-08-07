@@ -303,3 +303,13 @@ Make sure your project directory is a git repo with a remote configured. When yo
 | DuckDB file not found | Re-run setup or check that `~/.prelight/prelight.duckdb` exists |
 | Databricks connection failed | Verify `host` starts with `https://`, token is valid, warehouse is running |
 | Push fails on raise_pr | Verify the repo has a remote configured: `git remote -v` |
+
+---
+
+## Developer Documentation
+
+Contributing or just want to understand the internals? Start with the [docs index](docs/README.md):
+
+- [Onboarding Guide](docs/ONBOARDING.md) — dev environment setup, repo tour, conventions, first contribution
+- [Architecture](docs/ARCHITECTURE.md) — high-level design, the 7-step flow, the production safety model
+- [Low-Level Design](docs/LOW_LEVEL_DESIGN.md) — module-by-module reference for every tool, guard, and template
